@@ -11,9 +11,25 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+# Add by Aishat
+import environ
+import os
 
+# Initialize environment variables
+env = environ.Env()
+environ.Env.read_env(os.path.join(".env"))
+
+# stop here
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+env = environ.Env()
+# environ.Env.read_env()  # This line ensures Django reads the .env file
+# environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -36,7 +52,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'playground'
+     'playground',
+    #  Added by Aishat
+     'backend',
 ]
 
 MIDDLEWARE = [
@@ -49,7 +67,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'backend.urls'
+# ROOT_URLCONF = 'backend.urls'
+
+ROOT_URLCONF = 'backend.routes.urls'
 
 TEMPLATES = [
     {
@@ -73,12 +93,29 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django',
+        'NAME': env('BellDB'),  # This will read 'BellDB' from .env
+        'CLIENT': {
+            'host': env('MONGO_DB_URI'),  # This will read the URI from .env
+            # Uncomment if using authentication
+            # 'username': env('MONGO_DB_USERNAME', default=None),
+            # 'password': env('MONGO_DB_PASSWORD', default=None),
+            # 'authSource': env('MONGO_DB_AUTHSOURCE', default='admin'),
+        }
     }
 }
+
+
 
 
 # Password validation
