@@ -14,21 +14,31 @@ from pathlib import Path
 # Add by Aishat
 import environ
 import os
+from dotenv import load_dotenv
 
-# Initialize environment variables
-env = environ.Env()
-environ.Env.read_env(os.path.join(".env"))
+# Load environment variables
+load_dotenv()
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'djongo',  # Ensure this is correct
+        'NAME': os.getenv('BellDB'),  # Ensure this is NOT None
+        'CLIENT': {
+            'host': os.getenv('MONGO_DB_URI'),  # Ensure this is NOT None
+        }
+    }
+}
+# Firebase Credentials Path
+FIREBASE_CREDENTIALS = os.getenv('FIREBASE_ADMIN_CREDENTIALS')
+# Check if it's correctly loaded
+print("Firebase Credentials Path:", FIREBASE_CREDENTIALS)
 # stop here
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 env = environ.Env()
-# environ.Env.read_env()  # This line ensures Django reads the .env file
-# environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-
-
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))  
 
 
 
@@ -53,8 +63,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
      'playground',
+     
     #  Added by Aishat
-     'backend',
+    'rest_framework', #for TREST API
+    'django.contrib.sessions',
+    'backend',
 ]
 
 MIDDLEWARE = [
@@ -88,36 +101,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django',
-        'NAME': env('BellDB'),  # This will read 'BellDB' from .env
-        'CLIENT': {
-            'host': env('MONGO_DB_URI'),  # This will read the URI from .env
-            # Uncomment if using authentication
-            # 'username': env('MONGO_DB_USERNAME', default=None),
-            # 'password': env('MONGO_DB_PASSWORD', default=None),
-            # 'authSource': env('MONGO_DB_AUTHSOURCE', default='admin'),
-        }
-    }
-}
-
-
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
