@@ -169,3 +169,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+backend/uploads
+backend/config/data/archie-bell-notif-system-firebase-adminsdk-cqr8e-b633275df3.json
