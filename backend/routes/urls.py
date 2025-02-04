@@ -23,14 +23,22 @@ from django.http import HttpResponse
 from backend.controllers.formController import submit_form
 from backend.controllers.notificationController import push_notifications
 from backend.controllers.submissionController import upload_image, serve_image
+from django.urls import path
+from backend.controllers.formController import submit_form, get_missing_persons
+from backend.controllers.notificationController import push_notifications
+
 
 def home(request):
     return HttpResponse("Welcome to the backend home page!")
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('playground.urls')),
-     path('submit-form/', submit_form, name='submit_form'),
-      path('push-notifications/', push_notifications, name='push_notifications'),
+    #  path('submit-form/', submit_form, name='submit_form'),
+    #   path('push-notifications/', push_notifications, name='push_notifications'),
       path('api/uploads/<str:image_name>/', serve_image, name='serve_image'),
      path('', home),  # Root URL path
+     
+    path('api/missing-persons/', get_missing_persons, name='get_missing_persons'),
+    path('api/missing-persons/create/', submit_form, name='submit_form'),
+    path('api/send-notification/', push_notifications, name='send_notification'),
 ] +static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
