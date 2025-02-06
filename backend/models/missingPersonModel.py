@@ -10,6 +10,6 @@ class MissingPerson(models.Model):
     image = models.ImageField(upload_to='images/')
 
     class Meta:
-        db_table = "missing_person_list"
+        db_table = "MissingPersonsList"
         verbose_name = "Missing Person"
-        verbose_name_plural = "Missing Persons"
+        verbose_name_plural = "Missing People"

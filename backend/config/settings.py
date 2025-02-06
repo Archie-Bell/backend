@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 # Add by Aishat
-import environ
 import os
 from dotenv import load_dotenv
 
@@ -37,8 +36,6 @@ print("Firebase Credentials Path:", FIREBASE_CREDENTIALS)
 BASE_DIR = Path(__file__).resolve().parent.parent
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))  
 
 
 
@@ -62,7 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-     'playground',
+    'database',
      
     #  Added by Aishat
     'rest_framework', #for TREST API

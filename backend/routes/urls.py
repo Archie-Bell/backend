@@ -32,7 +32,7 @@ def home(request):
     return HttpResponse("Welcome to the backend home page!")
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('playground.urls')),
+    path('api/', include('database.urls')),
     #  path('submit-form/', submit_form, name='submit_form'),
     #   path('push-notifications/', push_notifications, name='push_notifications'),
       path('api/uploads/<str:image_name>/', serve_image, name='serve_image'),
