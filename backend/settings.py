@@ -11,9 +11,32 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+# Add by Aishat
+import os
+from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'djongo',  # Ensure this is correct
+        'NAME': os.getenv('BellDB'),  # Ensure this is NOT None
+        'CLIENT': {
+            'host': os.getenv('MONGO_DB_URI'),  # Ensure this is NOT None
+        }
+    }
+}
+# Firebase Credentials Path
+FIREBASE_CREDENTIALS = os.getenv('FIREBASE_ADMIN_CREDENTIALS')
+# Check if it's correctly loaded
+print("Firebase Credentials Path:", FIREBASE_CREDENTIALS)
+# stop here
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -36,7 +59,11 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'database'
+    'database',
+     
+    #  Added by Aishat
+    'rest_framework', #for TREST API
+    'django.contrib.sessions',
 ]
 
 MIDDLEWARE = [
@@ -48,6 +75,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# ROOT_URLCONF = 'backend.urls'
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -68,19 +97,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 

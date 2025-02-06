@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from backend.models.missingPersonModel import MissingPerson
+from database.models import MissingPerson
 
 class MissingPersonSerializer(serializers.ModelSerializer):
     class Meta:

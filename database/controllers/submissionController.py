@@ -4,8 +4,8 @@ from django.conf import settings
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
-from backend.controllers.formController import submit_form
-from backend.controllers.notificationController import push_notifications
+from database.controllers.formController import submit_form
+from database.controllers.notificationController import push_notifications
 
 @csrf_exempt
 def upload_image(request):

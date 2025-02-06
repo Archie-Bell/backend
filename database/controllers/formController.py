@@ -1,8 +1,8 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
-from backend.models.missingPersonModel import MissingPerson
-from backend.serializers import MissingPersonSerializer
+from database.models import MissingPerson
+from database.serializers import MissingPersonSerializer
 from PIL import Image
 import os
 import uuid
