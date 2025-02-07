@@ -12,12 +12,12 @@ import uuid
 def submit_form(request):
     try:
         # Ensure 'image' is in FILES
-        # if 'image' not in request.FILES:
-        #     return JsonResponse({'error': 'Image file is required'}, status=400)
+        if 'image' not in request.FILES:
+            return JsonResponse({'error': 'Image file is required'}, status=400)
 
         # Extract fields
         data = request.data  
-        # image = request.FILES['image']
+        image = request.FILES['image']
 
         name = data.get('name')
         age = data.get('age')
@@ -26,19 +26,21 @@ def submit_form(request):
         additional_info = data.get('additional_info')
 
         # Validate fields
-        if not all([name, age, last_location_seen, last_date_time_seen]):
+        if not all([name, age, last_location_seen, last_date_time_seen, image]):
             return JsonResponse({'message': 'All fields are required'}, status=400)
 
         # Save the image
-        # image_extension = image.name.split('.')[-1]
-        # unique_filename = f"{uuid.uuid4().hex}.{image_extension}"
-        # output_dir = os.path.join('backend', 'uploads')
-        # os.makedirs(output_dir, exist_ok=True)  # Ensure folder exists
-        # output_path = os.path.join(output_dir, unique_filename)
+        
+        # TODO: This method is not safe, Aishat. - gobrin3707
+        image_extension = image.name.split('.')[-1]
+        unique_filename = f"{uuid.uuid4().hex}.{image_extension}"
+        output_dir = os.path.join('database', 'uploads')
+        os.makedirs(output_dir, exist_ok=True)  # Ensure folder exists
+        output_path = os.path.join(output_dir, unique_filename)
 
-        # with open(output_path, 'wb+') as destination:
-        #     for chunk in image.chunks():
-        #         destination.write(chunk)
+        with open(output_path, 'wb+') as destination:
+            for chunk in image.chunks():
+                destination.write(chunk)
 
         # Save record in database
         collection.insert_one({
