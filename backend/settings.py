@@ -21,7 +21,7 @@ load_dotenv()
 DATABASES = {
     'default': {
         'ENGINE': 'djongo',  # Ensure this is correct
-        'NAME': os.getenv('BellDB'),  # Ensure this is NOT None
+        'NAME': os.getenv('MONGO_DB_NAME'),  # Ensure this is NOT None
         'CLIENT': {
             'host': os.getenv('MONGO_DB_URI'),  # Ensure this is NOT None
         }

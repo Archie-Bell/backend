@@ -170,4 +170,4 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 database/uploads
-database/config/data/archie-bell-notif-system-firebase-adminsdk-cqr8e-b633275df3.json
+archie-bell-notif-system-firebase-adminsdk-cqr8e-b633275df3.json
