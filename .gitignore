@@ -171,3 +171,4 @@ cython_debug/
 .pypirc
 database/uploads
 archie-bell-notif-system-firebase-adminsdk-cqr8e-b633275df3.json
+dummy_db

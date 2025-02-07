@@ -20,13 +20,13 @@ load_dotenv()
 
 DATABASES = {
     'default': {
-        'ENGINE': 'djongo',  # Ensure this is correct
-        'NAME': os.getenv('MONGO_DB_NAME'),  # Ensure this is NOT None
-        'CLIENT': {
-            'host': os.getenv('MONGO_DB_URI'),  # Ensure this is NOT None
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'dummy_db',
     }
 }
+
+MIGRATION_MODULES = {}
+
 # Firebase Credentials Path
 FIREBASE_CREDENTIALS = os.getenv('FIREBASE_ADMIN_CREDENTIALS')
 # Check if it's correctly loaded

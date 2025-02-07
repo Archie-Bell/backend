@@ -17,6 +17,6 @@ urlpatterns = [
     path('uploads/<str:image_name>/', serve_image, name='serve_image'),
      
     path('missing-persons/', get_missing_persons, name='get_missing_persons'),
-    path('missing-persons/create/', submit_form, name='submit_form'),
+    path('missing-persons/create', submit_form, name='submit_form'),
     path('send-notification/', push_notifications, name='send_notification'),
 ] +static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
