@@ -45,7 +45,7 @@ def submit_form(request):
         # Save record in database
         collection.insert_one({
             "name": name,
-            "age": age,
+            "age": int(age),
             "last_location_seen": last_location_seen,
             "last_date_time_seen": last_date_time_seen,
             "additional_info": additional_info,
