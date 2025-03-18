@@ -6,6 +6,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from database.controllers.formController import submit_form
 from database.controllers.notificationController import push_notifications
+from django.http import FileResponse, HttpResponseNotFound
+
 
 @csrf_exempt
 def upload_image(request):
@@ -32,7 +34,10 @@ def upload_image(request):
     return JsonResponse({'message': 'Invalid request'}, status=400)
 
 def serve_image(request, image_name):
-    image_path = os.path.join(settings.MEDIA_ROOT, 'uploads', image_name)
+    """ Serve images from 'database/uploads/' via API """
+    image_path = os.path.join(settings.BASE_DIR, "database/uploads", image_name)
+
     if os.path.exists(image_path):
-        return FileResponse(open(image_path, 'rb'), content_type='image/jpeg')
-    return JsonResponse({'message': 'File not found'}, status=404)
+        return FileResponse(open(image_path, "rb"), content_type="image/jpeg")
+
+    return HttpResponseNotFound("<h1>404 - Image Not Found</h1>")

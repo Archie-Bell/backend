@@ -23,6 +23,6 @@ def home(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('database.urls')),
+    path('api/', include('database.urls')), 
     path('', home),  # Root URL path
 ]

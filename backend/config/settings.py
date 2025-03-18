@@ -9,22 +9,51 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
 from pathlib import Path
 # Add by Aishat
 import os
 from dotenv import load_dotenv
-
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+print(f"Loaded SECRET_KEY: {SECRET_KEY}")  # Debugging print
+# Database Configuration
+MONGO_DB_URI = os.getenv("MONGO_DB_URI")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
+MISSING_PERSONS_COLLECTION = os.getenv("MISSING_PERSONS_COLLECTION")
+FIREBASE_ADMIN_CREDENTIALS = os.getenv("FIREBASE_ADMIN_CREDENTIALS")
+# MEDIA CONFIGURATION
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+STATIC_URL = '/static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# File Uploads Configuration
+UPLOADS_URL = UPLOADS_URL = '/uploads/'   # Public URL path
+UPLOADS_ROOT = os.path.join(BASE_DIR, 'database', 'uploads')  # Storage path
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'dummy_db',
+        'ENGINE': 'django.db.backends.dummy'
     }
 }
 
+
+class DisableMigrations:
+    def __contains__(self, item):
+        return True
+
+    def __getitem__(self, item):
+        return None
+
+MIGRATION_MODULES = DisableMigrations()
+
+# Enable serving static files in development
+DEBUG = False  # Ensure custom serving works even in production
 MIGRATION_MODULES = {}
 
 # Firebase Credentials Path
@@ -33,9 +62,13 @@ FIREBASE_CREDENTIALS = os.getenv('FIREBASE_ADMIN_CREDENTIALS')
 print("Firebase Credentials Path:", FIREBASE_CREDENTIALS)
 # stop here
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# BASE_DIR = Path(__file__).resolve().parent.parent
+
+# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'database/uploads')
+
 
 
 
