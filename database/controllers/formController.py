@@ -45,7 +45,7 @@ def submit_form(request):
         image_url = f"/api/uploads/{unique_filename}"  # Public URL path
         new_record = {
             "name": name,
-            "age": age,
+            "age": int(age),
             "last_location_seen": last_location_seen,
             "last_date_time_seen": last_date_time_seen,
             "additional_info": additional_info,
