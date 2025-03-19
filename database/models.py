@@ -9,8 +9,9 @@ class MissingPerson(models.Model):
     last_date_time_seen = models.DateTimeField()
     additional_info = models.TextField(blank=True, null=True)
     image_url = models.CharField(max_length=500)  # Storing image URL
-    
-    # New fields
+    reporter_legal_name = models.CharField(max_length=255, blank=True, null=True)# Reporter Name
+    reporter_phone_number = models.CharField(max_length=20, blank=True, null=True)# Phone Number
+    rejection_reason = models.TextField(blank=True, null=True)# Reason for rejection
     form_status = models.CharField(max_length=20, choices=[("Pending", "Pending"), ("Approved", "Approved"), ("Rejected", "Rejected")], default="Pending")
     submission_date = models.DateTimeField(default=now)  # Auto set when submitted
     last_updated_date = models.DateTimeField(auto_now=True)  # Auto update when modified

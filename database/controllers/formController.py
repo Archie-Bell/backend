@@ -26,9 +26,11 @@ def submit_form(request):
         last_date_time_seen = data.get('last_date_time_seen')
         additional_info = data.get('additional_info')
         image_url = data.get("image_url")  
+        reporter_legal_name = data.get('reporter_legal_name')
+        reporter_phone_number = data.get('reporter_phone_number')
  
         # Validate required fields
-        if not all([name, age, last_location_seen, last_date_time_seen, image]):
+        if not all([name, age, last_location_seen, last_date_time_seen, image,reporter_legal_name, reporter_phone_number]):
             return JsonResponse({'error': 'All fields are required'}, status=400)
 
         # Save image
@@ -53,7 +55,10 @@ def submit_form(request):
              "form_status": "Pending",  # Default status
              "submission_date": datetime.datetime.utcnow(),  # Current UTC time
              "last_updated_date": datetime.datetime.utcnow(),  # Initially the same as submission date
+            "reporter_legal_name": reporter_legal_name,
+            "reporter_phone_number": reporter_phone_number,
              "updated_by": None  # Updated by will be set when an admin modifies the record
+             
         }
     # Insert into MongoDB
         result = collection.insert_one(new_record)
@@ -76,6 +81,9 @@ def get_missing_persons(request):
         data['last_updated_date'] = data.get('last_updated_date', None)
         data['form_status'] = data.get('form_status', "Pending")
         data['updated_by'] = data.get('updated_by', None)
+        data['reporter_legal_name'] = data.get('reporter_legal_name', None)  
+        data['reporter_phone_number'] = data.get('reporter_phone_number', None)  
+        data['rejection_reason'] = data.get('rejection_reason', None)  
 
     return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
     

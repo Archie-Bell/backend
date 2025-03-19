@@ -22,7 +22,7 @@ def update_submission(request):
             data = json.loads(request.body)
             submission_id = data.get("submission_id")
             status = data.get("status")
-
+            rejection_reason = data.get("rejection_reason", None) 
             # Extract staff email from the authenticated user
             auth_header = request.headers.get("Authorization")
             token = auth_header.split(" ")[1]
@@ -42,6 +42,12 @@ def update_submission(request):
                     "updated_by": updated_by_email,  # Store the email of the staff updating it
                 }
             }
+            
+                 # If rejected, add rejection reason
+            if status == "Rejected" and rejection_reason:
+                update_data["$set"]["rejection_reason"] = rejection_reason
+            # else:
+            #     update_data["$set"]["rejection_reason"] = None  # Clear rejection reason if approved
             db["MissingPersonsList"].update_one({"_id": ObjectId(submission_id)}, update_data)
 
             return JsonResponse({"message": f"Submission {status}"}, status=200)
