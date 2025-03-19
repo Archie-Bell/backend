@@ -16,8 +16,8 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-print(f"Loaded SECRET_KEY: {SECRET_KEY}")  # Debugging print
+# SECRET_KEY = os.getenv("SECRET_KEY")
+
 # Database Configuration
 MONGO_DB_URI = os.getenv("MONGO_DB_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
@@ -77,7 +77,7 @@ print("Firebase Credentials Path:", FIREBASE_CREDENTIALS)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-q0jx!0jtbk=y)c2&d1l284%13hlk(a*xe3i5dkbuxvvxtsbwu$'
-
+print(f"Loaded SECRET_KEY: {SECRET_KEY}")  # Debugging print
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 

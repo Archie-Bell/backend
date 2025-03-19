@@ -2,11 +2,7 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.config')
-
-
-
-
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 def main():
     """Run administrative tasks."""
     try:
