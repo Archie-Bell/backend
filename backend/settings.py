@@ -81,7 +81,10 @@ print(f"Loaded SECRET_KEY: {SECRET_KEY}")  # Debugging print
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '10.0.2.2',
+]
 
 
 # Application definition
