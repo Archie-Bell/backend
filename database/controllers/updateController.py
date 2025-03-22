@@ -9,7 +9,6 @@ from database.controllers.authController import staff_required
 from datetime import datetime
 import jwt  
 
-
 # Connect to MongoDB
 client = MongoClient(os.getenv("MONGO_DB_URI"))
 db = client[os.getenv("MONGO_DB_NAME")]

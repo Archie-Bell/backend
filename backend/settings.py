@@ -82,8 +82,10 @@ print(f"Loaded SECRET_KEY: {SECRET_KEY}")  # Debugging print
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    '127.0.0.1',
     'localhost',
     '10.0.2.2',
+    os.getenv('YOUR_LOCAL_IP_ADDRESS')
 ]
 
 

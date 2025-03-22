@@ -8,9 +8,6 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from pymongo import MongoClient
 import os
-from bson.objectid import ObjectId
-
-
 
 # Connect to MongoDB
 client = MongoClient(os.getenv("MONGO_DB_URI"))

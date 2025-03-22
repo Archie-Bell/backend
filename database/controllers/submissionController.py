@@ -8,7 +8,6 @@ from database.controllers.formController import submit_form
 from database.controllers.notificationController import push_notifications
 from django.http import FileResponse, HttpResponseNotFound
 
-
 @csrf_exempt
 def upload_image(request):
     if request.method == "POST" and request.FILES.get('image'):
@@ -21,7 +20,7 @@ def upload_image(request):
 
             # Save image with a random filename
             file_name = f"{image.name.split('.')[0]}_{int(time.time())}.{image.name.split('.')[-1]}"
-            file_path = default_storage.save(f"uploads/{file_name}", image)
+            file_path = default_storage.save(f"api/uploads/{file_name}", image)
 
             # Call the form submission and notification logic
             submit_form(request)  # Adjust this to handle form data
