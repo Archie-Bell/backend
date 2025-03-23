@@ -46,7 +46,7 @@ def submit_form(request):
                 destination.write(chunk)
 
         # Save record in database
-        image_url = f"/uploads/{unique_filename}"  # Public URL path
+        image_url = f"/api/uploads/{unique_filename}"  # Public URL path
         new_record = {
             "name": name,
             "age": int(age),
