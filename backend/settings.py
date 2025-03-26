@@ -10,13 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 from pathlib import Path
-# Add by Aishat
 import os
 from dotenv import load_dotenv
+
 # Load environment variables from .env file
 load_dotenv()
-
-# SECRET_KEY = os.getenv("SECRET_KEY")
 
 # Database Configuration
 MONGO_DB_URI = os.getenv("MONGO_DB_URI")
@@ -60,17 +58,6 @@ MIGRATION_MODULES = {}
 FIREBASE_CREDENTIALS = os.getenv('FIREBASE_ADMIN_CREDENTIALS')
 # Check if it's correctly loaded
 print("Firebase Credentials Path:", FIREBASE_CREDENTIALS)
-# stop here
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-# BASE_DIR = Path(__file__).resolve().parent.parent
-
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# MEDIA_URL = '/media/'
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'database/uploads')
-
-
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -85,9 +72,10 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     '10.0.2.2',
-    os.getenv('YOUR_LOCAL_IP_ADDRESS')
+    os.getenv('YOUR_LOCAL_IP_ADDRESS'),
 ]
 
+print(ALLOWED_HOSTS)
 
 # Application definition
 
@@ -102,6 +90,8 @@ INSTALLED_APPS = [
     #  Added by Aishat
     'rest_framework', #for TREST API
     'django.contrib.sessions',
+    
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -112,7 +102,33 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
+
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:8001',  
+# ]
+
+# CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8001',
+]
+
+CORS_ALLOW_METHODS = [
+    'GET',
+    'POST',
+    'PUT',
+    'DELETE',
+]
+
+CORS_ALLOW_HEADERS = [
+    'Content-Type',
+    'Authorization',
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 # ROOT_URLCONF = 'backend.urls'
 
