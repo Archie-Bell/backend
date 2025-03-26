@@ -1,3 +1,5 @@
+import base64
+import glob
 import os
 import uuid
 from django.conf import settings
@@ -21,29 +23,39 @@ def submit_form(request):
     try:
         # Extract form data
         data = request.data  
-        image = request.FILES['image']
+        base64_image = data.get('image')
         name = data.get('name')
         age = data.get('age')
         last_location_seen = data.get('last_location_seen')
         last_date_time_seen = data.get('last_date_time_seen')
         additional_info = data.get('additional_info')
-        image_url = data.get("image_url")  
         reporter_legal_name = data.get('reporter_legal_name')
         reporter_phone_number = data.get('reporter_phone_number')
+        
+        if base64_image.startswith('data:image'):
+            base64_image = base64_image.split(',')[1]
+            
+        if not additional_info != '':
+            additional_info = 'No description was provided.'
+        
+        str_to_date = datetime.datetime.strptime(last_date_time_seen, "%Y-%m-%dT%H:%M")
+        formatted_date = str_to_date.strftime("%d %b. %Y, %I:%M %p")
  
         # Validate required fields
-        if not all([name, age, last_location_seen, last_date_time_seen, image,reporter_legal_name, reporter_phone_number]):
+        if not all([name, age, last_location_seen, last_date_time_seen, base64_image, reporter_legal_name, reporter_phone_number]):
             return JsonResponse({'error': 'All fields are required'}, status=400)
 
         # Save image
+        image_data = base64.b64decode(base64_image)
         unique_filename = f"{uuid.uuid4().hex}.png"
         output_dir = os.path.join('database', 'uploads')
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, unique_filename)
 
-        with open(output_path, 'wb+') as destination:
-            for chunk in image.chunks():
-                destination.write(chunk)
+        with open(output_path, 'wb') as destination:
+            destination.write(image_data)
+                
+        print(f'Image path: {output_path}')
 
         # Save record in database
         image_url = f"/api/uploads/{unique_filename}"  # Public URL path
@@ -51,7 +63,7 @@ def submit_form(request):
             "name": name,
             "age": int(age),
             "last_location_seen": last_location_seen,
-            "last_date_time_seen": last_date_time_seen,
+            "last_date_time_seen": formatted_date,
             "additional_info": additional_info,
             "image_url": image_url, 
             "form_status": "Pending",  # Default status
@@ -61,13 +73,15 @@ def submit_form(request):
             "reporter_phone_number": reporter_phone_number,
             "updated_by": None  # Updated by will be set when an admin modifies the record
         }
+        
+        print(new_record)
     # Insert into MongoDB
         result = collection.insert_one(new_record)
         print(f"Inserted ID: {result.inserted_id}")  # Debugging
         
         tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
         
-        push_notifications(tokens, name, age, last_location_seen, last_date_time_seen)
+        push_notifications(tokens, name, age, last_location_seen, formatted_date, output_path, result.inserted_id)
 
         return JsonResponse({'message': 'Form submitted successfully', 'image_url': image_url}, status=200)
 
@@ -96,8 +110,17 @@ def get_missing_persons(request):
 @api_view(['DELETE'])
 def delete_collection_data(request):
     try:
+        file_list = glob.glob(f'{os.path.join('database', 'uploads')}/*.png' or f'{os.path.join('database', 'uploads')}/*.jpg' or f'{os.path.join('database', 'uploads')}/*.jpeg', recursive=True)
         result = collection.delete_many({})
         
+        for file in file_list:
+            try:
+                os.remove(file)
+            except OSError:
+                return JsonResponse(
+                    {"error": str(e)},
+                    status=500
+                )
         if result.deleted_count > 0:
             return JsonResponse(
                 {"message": f"Successfully deleted {result.deleted_count} records."},

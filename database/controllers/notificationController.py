@@ -48,7 +48,7 @@ def fetch_access_token():
     return creds.token
 
 @csrf_exempt
-def push_notifications(tokens: list, name, age, last_location_seen, last_date_time_seen):
+def push_notifications(tokens: list, name, age, last_location_seen, last_date_time_seen, image, id):
     endpoint = f'https://fcm.googleapis.com/v1/projects/{os.getenv("FIREBASE_PROJECT_NAME")}/messages:send'
     
     # Enclose inside a for-loop as each token in the list is iterated
@@ -60,7 +60,22 @@ def push_notifications(tokens: list, name, age, last_location_seen, last_date_ti
                     'title': f'{name}, declared missing just now.',
                     'body': f'{name}, aged {age} was last seen at {last_date_time_seen} in {last_location_seen}. Open the application to see more information about this person.',
                 },
-                'token': token
+                'token': token,
+                'android': {
+                    'notification': {
+                        'image': f'https://fastly.picsum.photos/id/324/200/200.jpg?hmac=qhw4ORwk8T1r-Rxd2QREZORSVvc6l_R1S6F3Pl9mR_c',
+                    }
+                },
+                'apns': {
+                    'payload': {
+                        'aps': {
+                            'mutable-content': 1
+                        }
+                    },
+                    'fcm_options': {
+                        'image': f'https://fastly.picsum.photos/id/324/200/200.jpg?hmac=qhw4ORwk8T1r-Rxd2QREZORSVvc6l_R1S6F3Pl9mR_c'
+                    }
+                }
             }
         }
 
