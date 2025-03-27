@@ -1,12 +1,13 @@
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from database.controllers.formController import submit_form, get_missing_persons, delete_collection_data
+from database.controllers.formController import get_missing_person, submit_form, get_missing_persons, delete_collection_data
 from database.controllers.authController import staff_signup, staff_login,staff_dashboard
 from database.controllers.updateController import update_submission
 
 urlpatterns = [
     path('missing-persons/', get_missing_persons, name='get_missing_persons'),
+    path('missing-person/<str:person_id>/', get_missing_person, name='get_missing_person'),
     path('missing-persons/create/', submit_form, name='submit_form'),
     path("staff/signup/", staff_signup, name="staff_signup"),
     path("staff/login/", staff_login, name="staff_login"),  

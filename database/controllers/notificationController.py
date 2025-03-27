@@ -58,7 +58,7 @@ def push_notifications(tokens: list, name, age, last_location_seen, last_date_ti
             'message': {
                 'notification': {
                     'title': f'{name}, declared missing just now.',
-                    'body': f'{name}, aged {age} was last seen at {last_date_time_seen} in {last_location_seen}. Open the application to see more information about this person.',
+                    'body': f'{name}, {age}, was last seen at {last_date_time_seen} in {last_location_seen}. Open the application to see more information about this person.',
                 },
                 'token': token,
                 'android': {

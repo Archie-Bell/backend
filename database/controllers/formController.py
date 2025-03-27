@@ -1,5 +1,6 @@
 import base64
 import glob
+import io
 import os
 import uuid
 from django.conf import settings
@@ -7,6 +8,8 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from pymongo import MongoClient
+from bson import ObjectId
+from PIL import Image
 import datetime
 
 from database.controllers.notificationController import push_notifications, get_fcm_tokens
@@ -17,6 +20,48 @@ collection = db[settings.MISSING_PERSONS_COLLECTION]
 ALLOWED_IMAGE_TYPES = ['jpg', 'jpeg', 'png']
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
 
+# This is the function where you handle image saving and processing
+def save_image(base64_image):
+    try:
+        # Decode the base64 image data
+        image_data = base64.b64decode(base64_image)
+        
+        # Open the image using PIL
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Get the dimensions of the image
+        width, height = image.size
+        
+        # Calculate the new crop box for 1:1 aspect ratio (crop the smallest dimension)
+        new_dimension = min(width, height)
+        left = (width - new_dimension) // 2
+        top = (height - new_dimension) // 2
+        right = (width + new_dimension) // 2
+        bottom = (height + new_dimension) // 2
+        
+        # Crop the image to 1:1 aspect ratio
+        image = image.crop((left, top, right, bottom))
+        
+        # Resize the image to 400x400
+        image = image.resize((400, 400))
+        
+        # Generate a unique filename for the image
+        unique_filename = f"{uuid.uuid4().hex}.png"
+        output_dir = os.path.join('database', 'uploads')
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, unique_filename)
+        
+        # Save the processed image to the output path
+        image.save(output_path, format="PNG")
+        
+        # Return the image URL for reference in the database
+        image_url = f"/api/uploads/{unique_filename}"
+        return image_url, output_path
+    
+    except Exception as e:
+        raise Exception(f"Error processing the image: {str(e)}")
+
+# In your submit_form function, you can now call save_image
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
 def submit_form(request):
@@ -35,30 +80,21 @@ def submit_form(request):
         if base64_image.startswith('data:image'):
             base64_image = base64_image.split(',')[1]
             
-        if not additional_info != '':
+        if not additional_info:
             additional_info = 'No description was provided.'
         
-        str_to_date = datetime.datetime.strptime(last_date_time_seen, "%Y-%m-%dT%H:%M")
-        formatted_date = str_to_date.strftime("%d %b. %Y, %I:%M %p")
- 
         # Validate required fields
         if not all([name, age, last_location_seen, last_date_time_seen, base64_image, reporter_legal_name, reporter_phone_number]):
             return JsonResponse({'error': 'All fields are required'}, status=400)
 
-        # Save image
-        image_data = base64.b64decode(base64_image)
-        unique_filename = f"{uuid.uuid4().hex}.png"
-        output_dir = os.path.join('database', 'uploads')
-        os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, unique_filename)
-
-        with open(output_path, 'wb') as destination:
-            destination.write(image_data)
+        # Process and save the image, return the image URL
+        image_url, output_path = save_image(base64_image)
                 
-        print(f'Image path: {output_path}')
-
+        # Format the last seen date
+        str_to_date = datetime.datetime.strptime(last_date_time_seen, "%Y-%m-%dT%H:%M")
+        formatted_date = str_to_date.strftime("%d %b. %Y, %I:%M %p")
+        
         # Save record in database
-        image_url = f"/api/uploads/{unique_filename}"  # Public URL path
         new_record = {
             "name": name,
             "age": int(age),
@@ -74,10 +110,8 @@ def submit_form(request):
             "updated_by": None  # Updated by will be set when an admin modifies the record
         }
         
-        print(new_record)
-    # Insert into MongoDB
+        # Insert into MongoDB
         result = collection.insert_one(new_record)
-        print(f"Inserted ID: {result.inserted_id}")  # Debugging
         
         tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
         
@@ -87,7 +121,6 @@ def submit_form(request):
 
     except Exception as e:
         return JsonResponse({'message': 'Something went wrong', 'error': str(e)}, status=500)
-
 
 # Get all records inside the collection (MissingPersonsList)
 @api_view(['GET'])
@@ -105,6 +138,36 @@ def get_missing_persons(request):
         data['rejection_reason'] = data.get('rejection_reason', None)  
 
     return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
+
+# Implement singular data fetching
+@api_view(['GET'])
+def get_missing_person(request, person_id=None):
+    if person_id is None:
+        return JsonResponse({"error": "No person id provided."}, status=400)
+    
+    try:
+        # Convert the string id to ObjectId
+        person_object_id = ObjectId(person_id)
+    except Exception as e:
+        return JsonResponse({"error": f"Invalid ID format: {str(e)}"}, status=400)
+    
+    # Fetch the missing person based on the ID
+    person = collection.find_one({"_id": person_object_id})
+
+    if person is None:
+        return JsonResponse({"error": "Person not found."}, status=404)
+    
+    # Ensure the person data is formatted correctly before returning it
+    person['_id'] = str(person['_id'])  # Convert ObjectId to string
+    person['submission_date'] = person.get('submission_date', None)
+    person['last_updated_date'] = person.get('last_updated_date', None)
+    person['form_status'] = person.get('form_status', "Pending")
+    person['updated_by'] = person.get('updated_by', None)
+    person['reporter_legal_name'] = person.get('reporter_legal_name', None)
+    person['reporter_phone_number'] = person.get('reporter_phone_number', None)
+    person['rejection_reason'] = person.get('rejection_reason', None)
+
+    return JsonResponse(person, safe=False, json_dumps_params={'indent': 4})
 
 # [DEBUG] delete existing data inside MissingPersonsList
 @api_view(['DELETE'])
