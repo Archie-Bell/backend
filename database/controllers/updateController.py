@@ -40,8 +40,6 @@ def update_submission(request, **kwargs):
             age = submission.get('age')
             last_location_seen = submission.get('last_location_seen')
             last_date_time_seen = submission.get('last_date_time_seen')
-            image_url = submission.get('image_url').split('/api/uploads')
-            print(image_url)
             
             # Update status, last_updated_date, and updated_by
             update_data = {
@@ -55,7 +53,7 @@ def update_submission(request, **kwargs):
             if status == "Approved":
                 tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
         
-                push_notifications(tokens, name, age, last_location_seen, last_date_time_seen, image_url, submission_id)
+                push_notifications(tokens, name, age, last_location_seen, last_date_time_seen, submission_id)
 
             if status in ["Approved"]:
                 # Send submission to the main list

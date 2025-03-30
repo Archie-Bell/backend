@@ -7,8 +7,6 @@ import json
 import os
 from django.views.decorators.csrf import csrf_exempt
 
-from database.controllers.imageController import fetch_image_data
-
 # Fetch Firebase credentials from environment variable
 firebase_credentials_path = os.getenv('FIREBASE_ADMIN_CREDENTIALS')
 
@@ -50,7 +48,7 @@ def fetch_access_token():
     return creds.token
 
 @csrf_exempt
-def push_notifications(tokens: list, name, age, last_location_seen, last_date_time_seen, image, id):
+def push_notifications(tokens: list, name, age, last_location_seen, last_date_time_seen, id):
     endpoint = f'https://fcm.googleapis.com/v1/projects/{os.getenv("FIREBASE_PROJECT_NAME")}/messages:send'
     
     # Enclose inside a for-loop as each token in the list is iterated
@@ -63,20 +61,12 @@ def push_notifications(tokens: list, name, age, last_location_seen, last_date_ti
                     'body': f'{name}, {age}, was last seen at {last_date_time_seen} in {last_location_seen}. Open the application to see more information about this person.',
                 },
                 'token': token,
-                'android': {
-                    'notification': {
-                        'image': fetch_image_data(image),
-                    }
-                },
                 'apns': {
                     'payload': {
                         'aps': {
                             'mutable-content': 1
                         }
                     },
-                    'fcm_options': {
-                        'image': fetch_image_data(image)
-                    }
                 }
             }
         }
