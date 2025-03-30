@@ -4,7 +4,7 @@ import io
 import os
 import uuid
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import FileResponse, HttpResponse, HttpResponseNotFound, JsonResponse
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from pymongo import MongoClient
@@ -16,7 +16,8 @@ from database.controllers.notificationController import push_notifications, get_
 # Connect to MongoDB using Django settings
 client = MongoClient(settings.MONGO_DB_URI)  
 db = client[settings.MONGO_DB_NAME]
-collection = db[settings.MISSING_PERSONS_COLLECTION]
+missing_persons_collection = db[settings.MISSING_PERSONS_COLLECTION]
+pending_list_collection = db[settings.PENDING_SUBMISSION_COLLECTION]
 ALLOWED_IMAGE_TYPES = ['jpg', 'jpeg', 'png']
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
 
@@ -111,7 +112,7 @@ def submit_form(request):
         }
         
         # Insert into MongoDB
-        result = collection.insert_one(new_record)
+        result = pending_list_collection.insert_one(new_record)
         
         tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
         
@@ -126,7 +127,7 @@ def submit_form(request):
 @api_view(['GET'])
 def get_missing_persons(request):
     # API to fetch all missing persons.
-    _data = list(collection.find({}))
+    _data = list(pending_list_collection.find({}))
     for data in _data:
         data['_id'] = str(data['_id'])  
         data['submission_date'] = data.get('submission_date', None)  
@@ -152,7 +153,7 @@ def get_missing_person(request, person_id=None):
         return JsonResponse({"error": f"Invalid ID format: {str(e)}"}, status=400)
     
     # Fetch the missing person based on the ID
-    person = collection.find_one({"_id": person_object_id})
+    person = pending_list_collection.find_one({"_id": person_object_id})
 
     if person is None:
         return JsonResponse({"error": "Person not found."}, status=404)
@@ -174,7 +175,7 @@ def get_missing_person(request, person_id=None):
 def delete_collection_data(request):
     try:
         file_list = glob.glob(f'{os.path.join('database', 'uploads')}/*.png' or f'{os.path.join('database', 'uploads')}/*.jpg' or f'{os.path.join('database', 'uploads')}/*.jpeg', recursive=True)
-        result = collection.delete_many({})
+        result = missing_persons_collection.delete_many({}) and pending_list_collection.delete_many({})
         
         for file in file_list:
             try:
@@ -199,3 +200,18 @@ def delete_collection_data(request):
             {"error": str(e)},
             status=500
         )
+
+@api_view(['GET'])
+def fetch_image_data(request, image_name):
+    try:
+        """ Serve images from 'database/uploads/' via API """
+        print("Attempting to display image.")
+        image_path = os.path.join(settings.BASE_DIR, "database/uploads", image_name)
+        print(image_path)
+
+        if os.path.exists(image_path):
+            return FileResponse(open(image_path, "rb"), content_type="image/jpeg" or "image/jpg" or "image/png")
+
+        return HttpResponseNotFound("<h1>404 - Image Not Found</h1>")
+    except Exception as e:
+        return HttpResponse(f'Something went wrong: {str(e)}', status=500)

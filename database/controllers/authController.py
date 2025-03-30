@@ -82,13 +82,13 @@ def staff_login(request):
         except Exception as e:
             print(f" ERROR: {e}")  # Print the actual error
             return JsonResponse({"error": str(e)}, status=500)
-
-#  Dash board detail
-def staff_required(view_func):
-    @wraps(view_func)
+        
+def verify_auth(func):
+    @wraps(func)
     def wrapper(request, *args, **kwargs):
         try:
             auth_header = request.headers.get("Authorization")
+            print(auth_header)
             if not auth_header:
                 return JsonResponse({"error": "Unauthorized - No Authorization header provided"}, status=401)
             # Ensure correct format
@@ -105,7 +105,7 @@ def staff_required(view_func):
             if not staff or staff.get("role") != "staff":
                 return JsonResponse({"error": "Forbidden - Staff access required"}, status=403)
 
-            return view_func(request, *args, **kwargs)
+            return func(request, *args, **kwargs)
 
         except jwt.ExpiredSignatureError:
             return JsonResponse({"error": "Unauthorized - Token expired"}, status=401)
@@ -116,19 +116,9 @@ def staff_required(view_func):
 
     return wrapper
 
-# Staff Dashboard Route
-@staff_required
-def staff_dashboard(request):
-    """Fetch pending submissions for review."""
+@verify_auth
+def verify_panel_access(request):
     try:
-        pending_forms = list(db["MissingPersonsList"].find({"form_status": "Pending"}, {"_id": 0}))
-
-        return JsonResponse(
-            {
-                "message": "Pending submissions retrieved successfully",
-                "pending_forms": pending_forms,
-            },
-            status=200,
-        )
+        return JsonResponse({'message': 'Staff successfully authenticated.'}, status=200)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
