@@ -104,6 +104,9 @@ def verify_auth(func):
             staff = staff_collection.find_one({"email": email})
             if not staff or staff.get("role") != "staff":
                 return JsonResponse({"error": "Forbidden - Staff access required"}, status=403)
+            
+            # Pass email for display on front-end
+            kwargs['staff_email'] = email
 
             return func(request, *args, **kwargs)
 
@@ -117,8 +120,13 @@ def verify_auth(func):
     return wrapper
 
 @verify_auth
-def verify_panel_access(request):
+def verify_panel_access(request, *args, **kwargs):
     try:
-        return JsonResponse({'message': 'Staff successfully authenticated.'}, status=200)
+        staff_email = kwargs.get('staff_email')
+        
+        if staff_email:
+            return JsonResponse({'message': 'Staff successfully authenticated.', 'staff_email': staff_email}, status=200)
+        else:
+            JsonResponse({'error': 'No valid staff email was passed.'}, status=500)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
