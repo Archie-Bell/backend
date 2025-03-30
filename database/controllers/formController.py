@@ -114,9 +114,9 @@ def submit_form(request):
         # Insert into MongoDB
         result = pending_list_collection.insert_one(new_record)
         
-        tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
+        # tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
         
-        push_notifications(tokens, name, age, last_location_seen, formatted_date, output_path, result.inserted_id)
+        # push_notifications(tokens, name, age, last_location_seen, formatted_date, output_path, result.inserted_id)
 
         return JsonResponse({'message': 'Form submitted successfully', 'image_url': image_url}, status=200)
 
@@ -125,8 +125,8 @@ def submit_form(request):
 
 # Get all records inside the collection (MissingPersonsList)
 @api_view(['GET'])
-def get_missing_persons(request):
-    # API to fetch all missing persons.
+def fetch_pending_list(request):
+    # API to fetch all missing persons in pending list.
     _data = list(pending_list_collection.find({}))
     for data in _data:
         data['_id'] = str(data['_id'])  
@@ -142,7 +142,7 @@ def get_missing_persons(request):
 
 # Implement singular data fetching
 @api_view(['GET'])
-def get_missing_person(request, person_id=None):
+def fetch_pending_person(request, person_id=None):
     if person_id is None:
         return JsonResponse({"error": "No person id provided."}, status=400)
     
@@ -200,18 +200,3 @@ def delete_collection_data(request):
             {"error": str(e)},
             status=500
         )
-
-@api_view(['GET'])
-def fetch_image_data(request, image_name):
-    try:
-        """ Serve images from 'database/uploads/' via API """
-        print("Attempting to display image.")
-        image_path = os.path.join(settings.BASE_DIR, "database/uploads", image_name)
-        print(image_path)
-
-        if os.path.exists(image_path):
-            return FileResponse(open(image_path, "rb"), content_type="image/jpeg" or "image/jpg" or "image/png")
-
-        return HttpResponseNotFound("<h1>404 - Image Not Found</h1>")
-    except Exception as e:
-        return HttpResponse(f'Something went wrong: {str(e)}', status=500)

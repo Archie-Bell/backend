@@ -7,6 +7,8 @@ import json
 import os
 from django.views.decorators.csrf import csrf_exempt
 
+from database.controllers.imageController import fetch_image_data
+
 # Fetch Firebase credentials from environment variable
 firebase_credentials_path = os.getenv('FIREBASE_ADMIN_CREDENTIALS')
 
@@ -63,7 +65,7 @@ def push_notifications(tokens: list, name, age, last_location_seen, last_date_ti
                 'token': token,
                 'android': {
                     'notification': {
-                        'image': f'https://fastly.picsum.photos/id/324/200/200.jpg?hmac=qhw4ORwk8T1r-Rxd2QREZORSVvc6l_R1S6F3Pl9mR_c',
+                        'image': fetch_image_data(image),
                     }
                 },
                 'apns': {
@@ -73,7 +75,7 @@ def push_notifications(tokens: list, name, age, last_location_seen, last_date_ti
                         }
                     },
                     'fcm_options': {
-                        'image': f'https://fastly.picsum.photos/id/324/200/200.jpg?hmac=qhw4ORwk8T1r-Rxd2QREZORSVvc6l_R1S6F3Pl9mR_c'
+                        'image': fetch_image_data(image)
                     }
                 }
             }

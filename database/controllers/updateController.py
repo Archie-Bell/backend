@@ -5,11 +5,10 @@ from django.views.decorators.csrf import csrf_exempt
 from pymongo import MongoClient
 import os
 from bson.objectid import ObjectId
-from database.controllers.authController import staff_required, verify_auth
+from database.controllers.authController import verify_auth
 from datetime import datetime
 import jwt
 
-from database.controllers.formController import fetch_image_data
 from database.controllers.notificationController import get_fcm_tokens, push_notifications  
 
 # Connect to MongoDB
@@ -18,7 +17,7 @@ db = client[os.getenv("MONGO_DB_NAME")]
 
 @csrf_exempt
 @verify_auth
-def update_submission(request):
+def update_submission(request, **kwargs):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
@@ -56,19 +55,37 @@ def update_submission(request):
             if status == "Approved":
                 tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
         
-                push_notifications(tokens, name, age, last_location_seen, last_date_time_seen, fetch_image_data(image_url), submission_id)
+                push_notifications(tokens, name, age, last_location_seen, last_date_time_seen, image_url, submission_id)
 
-            # If rejected, add rejection reason
-            if status == "Rejected" and rejection_reason:
-                update_data["$set"]["rejection_reason"] = rejection_reason
-
-            # Move document to another collection if needed
-            if status in ["Approved"]:  # You can define other conditions to move the document
-                # 1. Insert the document into the target collection (e.g., 'ApprovedOrRejectedSubmissionList')
+            if status in ["Approved"]:
+                # Send submission to the main list
                 db["MissingPersonsList"].insert_one(submission)
+                print(f'Successfully approved submission {submission_id}.')
 
-                # 2. Delete the document from the original collection (e.g., 'PendingSubmissionList')
+                # Delete the submission from pending list as it's no longer required
                 db["PendingSubmissionList"].delete_one({"_id": ObjectId(submission_id)})
+                print(f'Successfully deleted {submission_id} from pending list.')
+                
+            # If form status is rejected, do this instead
+            elif status in ["Rejected"]:
+                # Exclude images as it's not required, include rest but provide data on why the submission is rejected
+                db["RejectedSubmissionList"].insert_one({
+                    '_id': ObjectId(submission_id),
+                    'reported_missing_person': submission.get('name'),
+                    'reported_missing_location': submission.get('last_location_seen'),
+                    'reported_date_time_missing': submission.get('last_date_time_seen'),
+                    'reporter_legal_name': submission.get('reporter_legal_name'),
+                    'reporter_phone_number': submission.get('reporter_phone_number'),
+                    'form_status': status,
+                    'rejection_reason': rejection_reason,
+                    'last_updated_date': datetime.utcnow(),
+                    'submission_date': submission.get('submission_date'),
+                    'updated_by': kwargs.get('staff_email')
+                })
+                print(f'Successfully rejected submission {submission_id}.')
+                
+                db["PendingSubmissionList"].delete_one({'_id': ObjectId(submission_id)})
+                print(f'Successfully deleted {submission_id} from pending list.')
 
             # Otherwise, update the document in the original collection
             db["PendingSubmissionList"].update_one({"_id": ObjectId(submission_id)}, update_data)
