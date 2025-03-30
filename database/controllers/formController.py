@@ -12,6 +12,7 @@ from bson import ObjectId
 from PIL import Image
 import datetime
 
+from database.controllers.authController import verify_auth
 from database.controllers.notificationController import push_notifications, get_fcm_tokens
 # Connect to MongoDB using Django settings
 client = MongoClient(settings.MONGO_DB_URI)  
@@ -115,10 +116,6 @@ def submit_form(request):
         
         # Insert into MongoDB
         result = pending_list_collection.insert_one(new_record)
-        
-        # tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
-        
-        # push_notifications(tokens, name, age, last_location_seen, formatted_date, output_path, result.inserted_id)
 
         return JsonResponse({'message': 'Form submitted successfully', 'image_url': image_url}, status=200)
 
@@ -127,7 +124,8 @@ def submit_form(request):
 
 # Get all records inside the collection (PendingSubmissionList)
 @api_view(['GET'])
-def fetch_pending_list(request):
+@verify_auth
+def fetch_pending_list(request, staff_email=None):
     # API to fetch all missing persons in pending list.
     _data = list(pending_list_collection.find({}))
     for data in _data:
@@ -161,6 +159,7 @@ def fetch_missing_person_list(request):
 
 # Implement singular data fetching for pending person
 @api_view(['GET'])
+@verify_auth
 def fetch_pending_person(request, person_id=None):
     if person_id is None:
         return JsonResponse({"error": "No person id provided."}, status=400)

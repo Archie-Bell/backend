@@ -8,7 +8,7 @@ from database.controllers.updateController import update_submission
 
 
 urlpatterns = [
-    path('missing-persons/pending', fetch_pending_list, name='get_pending_list'),
+    path('missing-persons/pending/', fetch_pending_list, name='get_pending_list'),
     path('missing-person/pending/<str:person_id>/', fetch_pending_person, name='get_pending_person'),
     path('missing-persons/', fetch_missing_person_list, name='get_missing_persons'),
     path('missing-person/<str:person_id>/', fetch_missing_person, name='get_missing_person'),
