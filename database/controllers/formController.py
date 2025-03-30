@@ -18,6 +18,7 @@ client = MongoClient(settings.MONGO_DB_URI)
 db = client[settings.MONGO_DB_NAME]
 missing_persons_collection = db[settings.MISSING_PERSONS_COLLECTION]
 pending_list_collection = db[settings.PENDING_SUBMISSION_COLLECTION]
+rejected_list_collection = db[settings.REJECTED_SUBMISSION_COLLECTION]
 ALLOWED_IMAGE_TYPES = ['jpg', 'jpeg', 'png']
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
 
@@ -67,6 +68,7 @@ def save_image(base64_image):
 @parser_classes([MultiPartParser, FormParser])
 def submit_form(request):
     try:
+        print('attempting to submit form')
         # Extract form data
         data = request.data  
         base64_image = data.get('image')
@@ -123,7 +125,7 @@ def submit_form(request):
     except Exception as e:
         return JsonResponse({'message': 'Something went wrong', 'error': str(e)}, status=500)
 
-# Get all records inside the collection (MissingPersonsList)
+# Get all records inside the collection (PendingSubmissionList)
 @api_view(['GET'])
 def fetch_pending_list(request):
     # API to fetch all missing persons in pending list.
@@ -140,7 +142,24 @@ def fetch_pending_list(request):
 
     return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
 
-# Implement singular data fetching
+# Get all records inside the collection (MissingPersonsList)
+@api_view(['GET'])
+def fetch_missing_person_list(request):
+    # API to fetch all missing persons in the main list.
+    _data = list(missing_persons_collection.find({}))
+    for data in _data:
+        data['_id'] = str(data['_id'])  
+        data['submission_date'] = data.get('submission_date', None)  
+        data['last_updated_date'] = data.get('last_updated_date', None)
+        data['form_status'] = data.get('form_status', "Pending")
+        data['updated_by'] = data.get('updated_by', None)
+        data['reporter_legal_name'] = data.get('reporter_legal_name', None)  
+        data['reporter_phone_number'] = data.get('reporter_phone_number', None)  
+        data['rejection_reason'] = data.get('rejection_reason', None)  
+
+    return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
+
+# Implement singular data fetching for pending person
 @api_view(['GET'])
 def fetch_pending_person(request, person_id=None):
     if person_id is None:
@@ -170,12 +189,41 @@ def fetch_pending_person(request, person_id=None):
 
     return JsonResponse(person, safe=False, json_dumps_params={'indent': 4})
 
+# Implement singular data fetching for missing person
+@api_view(['GET'])
+def fetch_missing_person(request, person_id=None):
+    if person_id is None:
+        return JsonResponse({"error": "No person id provided."}, status=400)
+    
+    try:
+        # Convert the string id to ObjectId
+        person_object_id = ObjectId(person_id)
+    except Exception as e:
+        return JsonResponse({"error": f"Invalid ID format: {str(e)}"}, status=400)
+    
+    # Fetch the missing person based on the ID
+    person = missing_persons_collection.find_one({"_id": person_object_id})
+
+    if person is None:
+        return JsonResponse({"error": "Person not found."}, status=404)
+    
+    # Ensure the person data is formatted correctly before returning it
+    person['_id'] = str(person['_id'])  # Convert ObjectId to string
+    person['submission_date'] = person.get('submission_date', None)
+    person['last_updated_date'] = person.get('last_updated_date', None)
+    person['form_status'] = person.get('form_status', "Pending")
+    person['updated_by'] = person.get('updated_by', None)
+    person['reporter_legal_name'] = person.get('reporter_legal_name', None)
+    person['reporter_phone_number'] = person.get('reporter_phone_number', None)
+
+    return JsonResponse(person, safe=False, json_dumps_params={'indent': 4})
+
 # [DEBUG] delete existing data inside MissingPersonsList
 @api_view(['DELETE'])
 def delete_collection_data(request):
     try:
         file_list = glob.glob(f'{os.path.join('database', 'uploads')}/*.png' or f'{os.path.join('database', 'uploads')}/*.jpg' or f'{os.path.join('database', 'uploads')}/*.jpeg', recursive=True)
-        result = missing_persons_collection.delete_many({}) and pending_list_collection.delete_many({})
+        result = missing_persons_collection.delete_many({}) and pending_list_collection.delete_many({}) and rejected_list_collection.delete_many({})
         
         for file in file_list:
             try:

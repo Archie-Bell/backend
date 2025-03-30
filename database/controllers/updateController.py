@@ -51,22 +51,34 @@ def update_submission(request, **kwargs):
             }
             
             if status == "Approved":
-                tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
-        
-                push_notifications(tokens, name, age, last_location_seen, last_date_time_seen, submission_id)
+                # Add the updated submission data to the MissingPersonsList
+                missing_person_data = {
+                    'name': name,
+                    'age': age,
+                    'last_location_seen': last_location_seen,
+                    'last_date_time_seen': last_date_time_seen,
+                    'image_url': submission.get('image_url'),
+                    'form_status': status,
+                    'submission_date': submission.get('submission_date'),
+                    'last_updated_date': datetime.utcnow(),
+                    'reporter_legal_name': submission.get('reporter_legal_name'),
+                    'reporter_phone_number': submission.get('reporter_phone_number'),
+                    'updated_by': updated_by_email,
+                }
 
-            if status in ["Approved"]:
-                # Send submission to the main list
-                db["MissingPersonsList"].insert_one(submission)
-                print(f'Successfully approved submission {submission_id}.')
+                # Insert the data into the MissingPersonsList collection
+                db["MissingPersonsList"].insert_one(missing_person_data)
+                print(f'Successfully approved and added to MissingPersonsList: {submission_id}.')
+
+                tokens = get_fcm_tokens()  # Fetch currently available FCM tokens stored inside Firebase
+                push_notifications(tokens, name, age, last_location_seen, last_date_time_seen, submission_id)
 
                 # Delete the submission from pending list as it's no longer required
                 db["PendingSubmissionList"].delete_one({"_id": ObjectId(submission_id)})
                 print(f'Successfully deleted {submission_id} from pending list.')
                 
-            # If form status is rejected, do this instead
-            elif status in ["Rejected"]:
-                # Exclude images as it's not required, include rest but provide data on why the submission is rejected
+            elif status == "Rejected":
+                # If form status is rejected, exclude images and add to the rejected list
                 db["RejectedSubmissionList"].insert_one({
                     '_id': ObjectId(submission_id),
                     'reported_missing_person': submission.get('name'),
@@ -78,7 +90,7 @@ def update_submission(request, **kwargs):
                     'rejection_reason': rejection_reason,
                     'last_updated_date': datetime.utcnow(),
                     'submission_date': submission.get('submission_date'),
-                    'updated_by': kwargs.get('staff_email')
+                    'updated_by': updated_by_email
                 })
                 print(f'Successfully rejected submission {submission_id}.')
                 
