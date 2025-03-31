@@ -40,6 +40,7 @@ def update_submission(request, **kwargs):
             age = submission.get('age')
             last_location_seen = submission.get('last_location_seen')
             last_date_time_seen = submission.get('last_date_time_seen')
+            additional_info = submission.get('additional_info')
             
             # Update status, last_updated_date, and updated_by
             update_data = {
@@ -57,6 +58,7 @@ def update_submission(request, **kwargs):
                     'age': age,
                     'last_location_seen': last_location_seen,
                     'last_date_time_seen': last_date_time_seen,
+                    'additional_info': additional_info,
                     'image_url': submission.get('image_url'),
                     'form_status': status,
                     'submission_date': submission.get('submission_date'),

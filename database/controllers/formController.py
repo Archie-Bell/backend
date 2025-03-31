@@ -160,7 +160,7 @@ def fetch_missing_person_list(request):
 # Implement singular data fetching for pending person
 @api_view(['GET'])
 @verify_auth
-def fetch_pending_person(request, person_id=None):
+def fetch_pending_person(request, person_id=None, staff_email=None):
     if person_id is None:
         return JsonResponse({"error": "No person id provided."}, status=400)
     
@@ -214,6 +214,7 @@ def fetch_missing_person(request, person_id=None):
     person['updated_by'] = person.get('updated_by', None)
     person['reporter_legal_name'] = person.get('reporter_legal_name', None)
     person['reporter_phone_number'] = person.get('reporter_phone_number', None)
+    person['additional_info'] = person.get('additional_info')
 
     return JsonResponse(person, safe=False, json_dumps_params={'indent': 4})
 
