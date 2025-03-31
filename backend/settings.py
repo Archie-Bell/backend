@@ -38,7 +38,11 @@ UPLOADS_ROOT = os.path.join(BASE_DIR, 'database', 'uploads')  # Storage path
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.dummy'
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'DUMMY',
+        'OPTIONS': {
+            'init_command': 'PRAGMA synchronous=3; PRAGMA cache_size=2000;',
+        },
     }
 }
 
@@ -82,6 +86,8 @@ print(ALLOWED_HOSTS)
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -95,6 +101,14 @@ INSTALLED_APPS = [
     
     'corsheaders',
 ]
+
+ASGI_APPLICATION = 'backend.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -41,7 +41,7 @@ def staff_signup(request):
             "password": hashed_password,
             "department": department,
             "role": "staff",
-            "signupdate": datetime.datetime.utcnow()
+            "signupdate": datetime.datetime.now(datetime.timezone.utc)
         })
 
         return JsonResponse({"message": "Signup successful"}, status=201)
@@ -72,7 +72,7 @@ def staff_login(request):
             payload = {
                 "email": email,
                 "role": staff["role"],
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+                "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 

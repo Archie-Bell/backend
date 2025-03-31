@@ -6,9 +6,11 @@ from pymongo import MongoClient
 import os
 from bson.objectid import ObjectId
 from database.controllers.authController import verify_auth
-from datetime import datetime
+from datetime import datetime, timezone
 import jwt
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from database.controllers.notificationController import get_fcm_tokens, push_notifications  
 
 # Connect to MongoDB
@@ -46,7 +48,7 @@ def update_submission(request, **kwargs):
             update_data = {
                 "$set": {
                     "form_status": status,
-                    "last_updated_date": datetime.utcnow(),  # Update timestamp
+                    "last_updated_date": datetime.now(timezone.utc),  # Update timestamp
                     "updated_by": updated_by_email,  # Store the email of the staff updating it
                 }
             }
@@ -62,7 +64,7 @@ def update_submission(request, **kwargs):
                     'image_url': submission.get('image_url'),
                     'form_status': status,
                     'submission_date': submission.get('submission_date'),
-                    'last_updated_date': datetime.utcnow(),
+                    'last_updated_date': datetime.now(timezone.utc),
                     'reporter_legal_name': submission.get('reporter_legal_name'),
                     'reporter_phone_number': submission.get('reporter_phone_number'),
                     'updated_by': updated_by_email,
@@ -79,6 +81,15 @@ def update_submission(request, **kwargs):
                 db["PendingSubmissionList"].delete_one({"_id": ObjectId(submission_id)})
                 print(f'Successfully deleted {submission_id} from pending list.')
                 
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    "updates",
+                    {
+                        "type": "submission_update",
+                        "message": f"Successfully approved submission ID: {submission_id}",
+                    }
+                )
+                
             elif status == "Rejected":
                 # If form status is rejected, exclude images and add to the rejected list
                 db["RejectedSubmissionList"].insert_one({
@@ -90,7 +101,7 @@ def update_submission(request, **kwargs):
                     'reporter_phone_number': submission.get('reporter_phone_number'),
                     'form_status': status,
                     'rejection_reason': rejection_reason,
-                    'last_updated_date': datetime.utcnow(),
+                    'last_updated_date': datetime.now(timezone.utc),
                     'submission_date': submission.get('submission_date'),
                     'updated_by': updated_by_email
                 })
@@ -98,6 +109,15 @@ def update_submission(request, **kwargs):
                 
                 db["PendingSubmissionList"].delete_one({'_id': ObjectId(submission_id)})
                 print(f'Successfully deleted {submission_id} from pending list.')
+                
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    "updates",
+                    {
+                        "type": "submission_update",
+                        "message": f"Successfully rejected submission ID: {submission_id}",
+                    }
+                )
 
             # Otherwise, update the document in the original collection
             db["PendingSubmissionList"].update_one({"_id": ObjectId(submission_id)}, update_data)

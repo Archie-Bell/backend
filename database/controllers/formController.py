@@ -12,8 +12,10 @@ from bson import ObjectId
 from PIL import Image
 import datetime
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from database.controllers.authController import verify_auth
-from database.controllers.notificationController import push_notifications, get_fcm_tokens
+
 # Connect to MongoDB using Django settings
 client = MongoClient(settings.MONGO_DB_URI)  
 db = client[settings.MONGO_DB_NAME]
@@ -107,8 +109,8 @@ def submit_form(request):
             "additional_info": additional_info,
             "image_url": image_url, 
             "form_status": "Pending",  # Default status
-            "submission_date": datetime.datetime.utcnow(),  # Current UTC time
-            "last_updated_date": datetime.datetime.utcnow(),  # Initially the same as submission date
+            "submission_date": datetime.datetime.now(datetime.timezone.utc),  # Current UTC time
+            "last_updated_date": datetime.datetime.now(datetime.timezone.utc),  # Initially the same as submission date
             "reporter_legal_name": reporter_legal_name,
             "reporter_phone_number": reporter_phone_number,
             "updated_by": None  # Updated by will be set when an admin modifies the record
@@ -116,6 +118,15 @@ def submit_form(request):
         
         # Insert into MongoDB
         result = pending_list_collection.insert_one(new_record)
+        
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "updates",
+            {
+                "type": "submission_update",
+                "message": f"New pending submission ID: {result.inserted_id}",
+            }
+        )
 
         return JsonResponse({'message': 'Form submitted successfully', 'image_url': image_url}, status=200)
 
@@ -218,27 +229,56 @@ def fetch_missing_person(request, person_id=None):
 
     return JsonResponse(person, safe=False, json_dumps_params={'indent': 4})
 
-# [DEBUG] delete existing data inside MissingPersonsList
+# [DEBUG] delete existing data inside each collection
 @api_view(['DELETE'])
 def delete_collection_data(request):
     try:
-        file_list = glob.glob(f'{os.path.join('database', 'uploads')}/*.png' or f'{os.path.join('database', 'uploads')}/*.jpg' or f'{os.path.join('database', 'uploads')}/*.jpeg', recursive=True)
-        result = missing_persons_collection.delete_many({}) and pending_list_collection.delete_many({}) and rejected_list_collection.delete_many({})
+        # Fix the file search pattern
+        file_list = glob.glob(os.path.join('database', 'uploads', '*.png')) + \
+                    glob.glob(os.path.join('database', 'uploads', '*.jpg')) + \
+                    glob.glob(os.path.join('database', 'uploads', '*.jpeg'))
         
+        # Delete data from collections and track deletion counts
+        missing_persons_deleted = missing_persons_collection.delete_many({})
+        pending_list_deleted = pending_list_collection.delete_many({})
+        rejected_list_deleted = rejected_list_collection.delete_many({})
+
+        total_deleted = missing_persons_deleted.deleted_count + \
+                        pending_list_deleted.deleted_count + \
+                        rejected_list_deleted.deleted_count
+        
+        # Remove files
         for file in file_list:
             try:
                 os.remove(file)
-            except OSError:
+            except OSError as e:
                 return JsonResponse(
-                    {"error": str(e)},
+                    {"error": f"Error removing file {file}: {str(e)}"},
                     status=500
                 )
-        if result.deleted_count > 0:
+
+        # Send update to channel layer
+        channel_layer = get_channel_layer()
+        if total_deleted > 0:
+            async_to_sync(channel_layer.group_send)(
+                "updates",
+                {
+                    "type": "submission_update",
+                    "message": f"Purged existing records and deleted {total_deleted} records.",
+                }
+            )
             return JsonResponse(
-                {"message": f"Successfully deleted {result.deleted_count} records."},
+                {"message": f"Successfully deleted {total_deleted} records."},
                 status=200
             )
         else:
+            async_to_sync(channel_layer.group_send)(
+                "updates",
+                {
+                    "type": "submission_update",
+                    "message": "No existing records to purge.",
+                }
+            )
             return JsonResponse(
                 {"message": "No records to delete."},
                 status=404
