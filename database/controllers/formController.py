@@ -176,13 +176,16 @@ def fetch_rejected_list(request, staff_email=None):
     _data = list(rejected_list_collection.find({}))
     for data in _data:
         data['_id'] = str(data['_id'])  
-        data['submission_date'] = data.get('submission_date', None)  
-        data['last_updated_date'] = data.get('last_updated_date', None)
-        data['form_status'] = data.get('form_status', "Pending")
-        data['updated_by'] = data.get('updated_by', None)
-        data['reporter_legal_name'] = data.get('reporter_legal_name', None)  
-        data['reporter_phone_number'] = data.get('reporter_phone_number', None)  
-        data['rejection_reason'] = data.get('rejection_reason', None)  
+        data['reported_missing_person'] = data.get('reported_missing_person')
+        data['reported_missing_location'] = data.get('reported_missing_location')
+        data['reported_date_time_missing'] = data.get('reported_date_time_missing')
+        data['reporter_legal_name'] = data.get('reporter_legal_name')
+        data['reporter_phone_number'] = data.get('reporter_phone_number')
+        data['form_status'] = data.get('form_status')
+        data['rejection_reason'] = data.get('rejection_reason')
+        data['last_updated_date'] = data.get('last_updated_date')
+        data['submission_date'] = data.get('submission_date')
+        data['updated_by'] = data.get('updated_by')
 
     return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
 
@@ -236,6 +239,40 @@ def fetch_missing_person(request, person_id=None):
         return JsonResponse({"error": "Person not found."}, status=404)
     
     # Ensure the person data is formatted correctly before returning it
+    person['_id'] = str(person['_id'])  
+    person['reported_missing_person'] = person.get('reported_missing_person')
+    person['reported_missing_location'] = person.get('reported_missing_location')
+    person['reported_date_time_missing'] = person.get('reported_date_time_missing')
+    person['reporter_legal_name'] = person.get('reporter_legal_name')
+    person['reporter_phone_number'] = person.get('reporter_phone_number')
+    person['form_status'] = person.get('form_status')
+    person['rejection_reason'] = person.get('rejection_reason')
+    person['last_updated_date'] = person.get('last_updated_date')
+    person['submission_date'] = person.get('submission_date')
+    person['updated_by'] = person.get('updated_by')
+
+    return JsonResponse(person, safe=False, json_dumps_params={'indent': 4})
+
+# Implement singular data fetching for pending person
+@api_view(['GET'])
+@verify_auth
+def fetch_rejected_person(request, person_id=None, staff_email=None):
+    if person_id is None:
+        return JsonResponse({"error": "No person id provided."}, status=400)
+    
+    try:
+        # Convert the string id to ObjectId
+        person_object_id = ObjectId(person_id)
+    except Exception as e:
+        return JsonResponse({"error": f"Invalid ID format: {str(e)}"}, status=400)
+    
+    # Fetch the missing person based on the ID
+    person = rejected_list_collection.find_one({"_id": person_object_id})
+
+    if person is None:
+        return JsonResponse({"error": "Person not found."}, status=404)
+    
+    # Ensure the person data is formatted correctly before returning it
     person['_id'] = str(person['_id'])  # Convert ObjectId to string
     person['submission_date'] = person.get('submission_date', None)
     person['last_updated_date'] = person.get('last_updated_date', None)
@@ -243,7 +280,7 @@ def fetch_missing_person(request, person_id=None):
     person['updated_by'] = person.get('updated_by', None)
     person['reporter_legal_name'] = person.get('reporter_legal_name', None)
     person['reporter_phone_number'] = person.get('reporter_phone_number', None)
-    person['additional_info'] = person.get('additional_info')
+    person['rejection_reason'] = person.get('rejection_reason', None)
 
     return JsonResponse(person, safe=False, json_dumps_params={'indent': 4})
 
