@@ -24,15 +24,23 @@ class NotificationConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
             {
-                'type': 'submission_update',
+                'type': 'new_submission',
                 'message': message
             }
         )
+        
+    def new_submission(self, event):
+        message = event['message']
+        
+        self.send(text_data=json.dumps({
+            'type': 'update',
+            'message': message
+        }))
         
     def submission_update(self, event):
         message = event['message']
         
         self.send(text_data=json.dumps({
-            'type': 'update',
+            'type': 'transaction',
             'message': message
         }))

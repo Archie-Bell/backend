@@ -123,7 +123,7 @@ def submit_form(request):
         async_to_sync(channel_layer.group_send)(
             "updates",
             {
-                "type": "submission_update",
+                "type": "new_submission",
                 "message": f"New pending submission ID: {result.inserted_id}",
             }
         )
@@ -156,6 +156,24 @@ def fetch_pending_list(request, staff_email=None):
 def fetch_missing_person_list(request):
     # API to fetch all missing persons in the main list.
     _data = list(missing_persons_collection.find({}))
+    for data in _data:
+        data['_id'] = str(data['_id'])  
+        data['submission_date'] = data.get('submission_date', None)  
+        data['last_updated_date'] = data.get('last_updated_date', None)
+        data['form_status'] = data.get('form_status', "Pending")
+        data['updated_by'] = data.get('updated_by', None)
+        data['reporter_legal_name'] = data.get('reporter_legal_name', None)  
+        data['reporter_phone_number'] = data.get('reporter_phone_number', None)  
+        data['rejection_reason'] = data.get('rejection_reason', None)  
+
+    return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
+
+# Get all records inside the collection (PendingSubmissionList)
+@api_view(['GET'])
+@verify_auth
+def fetch_rejected_list(request, staff_email=None):
+    # API to fetch all missing persons in pending list.
+    _data = list(rejected_list_collection.find({}))
     for data in _data:
         data['_id'] = str(data['_id'])  
         data['submission_date'] = data.get('submission_date', None)  
@@ -275,7 +293,7 @@ def delete_collection_data(request):
             async_to_sync(channel_layer.group_send)(
                 "updates",
                 {
-                    "type": "submission_update",
+                    "type": "new_submission",
                     "message": "No existing records to purge.",
                 }
             )
