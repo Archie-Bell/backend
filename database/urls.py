@@ -29,7 +29,6 @@ urlpatterns = [
     path('staff/missing-person/update/', handle_found_submission, name='handle_found_submission')
 ]
 
-
 # Serve uploaded images in development mode
 if settings.DEBUG:
     urlpatterns += static(settings.UPLOADS_URL, document_root=settings.UPLOADS_ROOT)
