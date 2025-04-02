@@ -153,9 +153,9 @@ def handle_found_submission(request, **kwargs):
             
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
-                "updates",
+                "active_search",
                 {
-                    "type": "found_submission",
+                    "type": "active_search_message",
                     "message": f"Approved found submission for parent: {parent_id}",
                 }
             )
@@ -179,9 +179,9 @@ def handle_found_submission(request, **kwargs):
             
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
-                "updates",
+                "active_search",
                 {
-                    "type": "found_submission",
+                    "type": "active_search_message",
                     "message": f"Declined found submission for parent: {parent_id}",
                 }
             )

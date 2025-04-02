@@ -1,27 +1,32 @@
 import json
-from channels.generic.websocket import WebsocketConsumer
-from asgiref.sync import async_to_sync
+from channels.generic.websocket import AsyncWebsocketConsumer
 
-class SubmissionConsumer(WebsocketConsumer):
-    def connect(self):
+class SubmissionConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
         self.room_group_name = 'updates'
-        async_to_sync(self.channel_layer.group_add)(
+        
+        # Add the channel to the group
+        await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         
-        self.accept()
+        # Accept the WebSocket connection
+        await self.accept()
         
-        self.send(text_data=json.dumps({
+        # Send a connection established message
+        await self.send(text_data=json.dumps({
             'type': 'connection_established',
             'message': 'WebSocket connected'
         }))
         
-    def receive(self, text_data):
+    async def receive(self, text_data):
+        # Parse the incoming message
         text_data_json = json.loads(text_data)
         message = text_data_json.get('message', None)
         
-        async_to_sync(self.channel_layer.group_send)(
+        # Send the received message to the group
+        await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'new_submission',
@@ -29,43 +34,52 @@ class SubmissionConsumer(WebsocketConsumer):
             }
         )
         
-    def new_submission(self, event):
+    async def new_submission(self, event):
+        # Extract message from the event
         message = event['message']
         
-        self.send(text_data=json.dumps({
+        # Send a message to the WebSocket
+        await self.send(text_data=json.dumps({
             'type': 'update',
             'message': message
         }))
         
-    def submission_update(self, event):
+    async def submission_update(self, event):
+        # Extract message from the event
         message = event['message']
         
-        self.send(text_data=json.dumps({
+        # Send a message to the WebSocket
+        await self.send(text_data=json.dumps({
             'type': 'transaction',
             'message': message
         }))
-        
-class ActiveSearchConsumer(WebsocketConsumer):
-    def connect(self):
+
+class ActiveSearchConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
         self.room_group_name = 'active_search'
         
-        async_to_sync(self.channel_layer.group_add)(
+        # Add the channel to the group
+        await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         
-        self.accept()
+        # Accept the WebSocket connection
+        await self.accept()
         
-        self.send(text_data=json.dumps({
+        # Send a connection established message
+        await self.send(text_data=json.dumps({
             'type': 'connection_established',
             'message': 'WebSocket connected'
         }))
         
-    def receive(self, text_data):
+    async def receive(self, text_data):
+        # Parse the incoming message
         text_data_json = json.loads(text_data)
         message = text_data_json.get('message', None)
         
-        async_to_sync(self.channel_layer.group_send)(
+        # Send the received message to the group
+        await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'active_search_message',
@@ -73,10 +87,12 @@ class ActiveSearchConsumer(WebsocketConsumer):
             }
         )
         
-    def active_search_message(self, event):
+    async def active_search_message(self, event):
+        # Extract message from the event
         message = event['message']
         
-        self.send(text_data=json.dumps({
+        # Send a message to the WebSocket
+        await self.send(text_data=json.dumps({
             'type': 'active_search_update',
             'message': message
         }))

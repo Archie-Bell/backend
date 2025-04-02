@@ -357,7 +357,7 @@ def delete_collection_data(request):
        
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
-def person_found_submission(request):
+def active_search_submission(request):
     try:
         data = request.data
         person = missing_persons_collection.find_one({ '_id': ObjectId(data.get('_parent_id')) })
@@ -404,10 +404,10 @@ def person_found_submission(request):
         
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            "updates",
+            "active_search",
             {
-                "type": "found_submission",
-                "message": f"New pending found submission ID: {id}",
+                "type": "active_search_message",
+                "message": f"New pending active search submission ID: {id}",
             }
         )
         
@@ -417,7 +417,7 @@ def person_found_submission(request):
 
 @verify_auth
 @api_view(['GET'])
-def get_found_submission(request, _parent_id=None, staff_email=None):
+def get_active_search_submission(request, _parent_id=None, staff_email=None):
     try:
         if _parent_id is None:
             return JsonResponse({ 'error': 'Specified parent ID is null.' }, status=400)
@@ -444,7 +444,7 @@ def get_found_submission(request, _parent_id=None, staff_email=None):
  
 @verify_auth   
 @api_view(['GET'])
-def get_specific_found_submission(request, _parent_id=None, submission_id=None, staff_email=None):
+def get_specific_active_search_submission(request, _parent_id=None, submission_id=None, staff_email=None):
     try:
         if submission_id is None:
             return JsonResponse({ 'error': 'Specified parent ID is null.' }, status=400)
@@ -476,7 +476,7 @@ def get_specific_found_submission(request, _parent_id=None, submission_id=None, 
 
 @verify_auth
 @api_view(['GET'])
-def get_rejected_found_submissions(request, _parent_id=None, staff_email=None):
+def get_rejected_active_search_submissions(request, _parent_id=None, staff_email=None):
     try:
         if _parent_id is None:
             return JsonResponse({ 'error': 'Specified parent ID is null.' }, status=400)
@@ -502,17 +502,17 @@ def get_rejected_found_submissions(request, _parent_id=None, staff_email=None):
         return JsonResponse({ 'message': 'Something went wrong.', 'error': str(e) }, status=500)
     
 @api_view(['DELETE'])
-def delete_specific_rejected_found_submissions(request, _id=None):
+def delete_specific_active_search_submission(request, _id=None):
     try:
         id = _id
         rejected_found_submission_collection.delete_one({ '_id': ObjectId(id) })
         
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            "updates",
+            "active_search",
             {
-                "type": "found_submission",
-                "message": f"Deleted rejected found submission ID: {id}",
+                "type": "active_search_message",
+                "message": f"Deleted rejected active search submission ID: {id}",
             }
         )
         
