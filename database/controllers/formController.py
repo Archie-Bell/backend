@@ -22,11 +22,12 @@ db = client[settings.MONGO_DB_NAME]
 missing_persons_collection = db[settings.MISSING_PERSONS_COLLECTION]
 pending_list_collection = db[settings.PENDING_SUBMISSION_COLLECTION]
 rejected_list_collection = db[settings.REJECTED_SUBMISSION_COLLECTION]
+found_submission_collection = db[settings.FOUND_SUBMISSION_COLLECTION]
+rejected_found_submission_collection = db[settings.REJECTED_FOUND_SUBMISSION_COLLECTION]
 ALLOWED_IMAGE_TYPES = ['jpg', 'jpeg', 'png']
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
 
-# This is the function where you handle image saving and processing
-def save_image(base64_image):
+def save_image(base64_image, submission_type):
     try:
         # Decode the base64 image data
         image_data = base64.b64decode(base64_image)
@@ -52,16 +53,27 @@ def save_image(base64_image):
         
         # Generate a unique filename for the image
         unique_filename = f"{uuid.uuid4().hex}.png"
-        output_dir = os.path.join('database', 'uploads')
+        
+        # Determine the output directory based on submission_type
+        if submission_type == 0:
+            output_dir = os.path.join('database', 'uploads')
+            image_url = f"/api/uploads/{unique_filename}"
+        elif submission_type == 1:
+            output_dir = os.path.join('database', 'uploads', 'submissions')
+            image_url = f"/api/uploads/submissions/{unique_filename}"
+        else:
+            raise ValueError("Invalid submission_type. Must be 0 or 1.")
+        
+        # Create the directory if it does not exist
         os.makedirs(output_dir, exist_ok=True)
+        
+        # Generate the output path
         output_path = os.path.join(output_dir, unique_filename)
         
         # Save the processed image to the output path
         image.save(output_path, format="PNG")
         
-        # Return the image URL for reference in the database
-        image_url = f"/api/uploads/{unique_filename}"
-        return image_url, output_path
+        return image_url
     
     except Exception as e:
         raise Exception(f"Error processing the image: {str(e)}")
@@ -71,7 +83,6 @@ def save_image(base64_image):
 @parser_classes([MultiPartParser, FormParser])
 def submit_form(request):
     try:
-        print('attempting to submit form')
         # Extract form data
         data = request.data  
         base64_image = data.get('image')
@@ -93,9 +104,11 @@ def submit_form(request):
         if not all([name, age, last_location_seen, last_date_time_seen, base64_image, reporter_legal_name, reporter_phone_number]):
             return JsonResponse({'error': 'All fields are required'}, status=400)
 
+        print("Checkpoint 1")
         # Process and save the image, return the image URL
-        image_url, output_path = save_image(base64_image)
+        image_url = save_image(base64_image, 0)
                 
+        print("Checkpoint 2")
         # Format the last seen date
         str_to_date = datetime.datetime.strptime(last_date_time_seen, "%Y-%m-%dT%H:%M")
         formatted_date = str_to_date.strftime("%d %b. %Y, %I:%M %p")
@@ -147,7 +160,6 @@ def fetch_pending_list(request, staff_email=None):
         data['updated_by'] = data.get('updated_by', None)
         data['reporter_legal_name'] = data.get('reporter_legal_name', None)  
         data['reporter_phone_number'] = data.get('reporter_phone_number', None)  
-        data['rejection_reason'] = data.get('rejection_reason', None)  
 
     return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
 
@@ -164,7 +176,6 @@ def fetch_missing_person_list(request):
         data['updated_by'] = data.get('updated_by', None)
         data['reporter_legal_name'] = data.get('reporter_legal_name', None)  
         data['reporter_phone_number'] = data.get('reporter_phone_number', None)  
-        data['rejection_reason'] = data.get('rejection_reason', None)  
 
     return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
 
@@ -216,7 +227,6 @@ def fetch_pending_person(request, person_id=None, staff_email=None):
     person['updated_by'] = person.get('updated_by', None)
     person['reporter_legal_name'] = person.get('reporter_legal_name', None)
     person['reporter_phone_number'] = person.get('reporter_phone_number', None)
-    person['rejection_reason'] = person.get('rejection_reason', None)
 
     return JsonResponse(person, safe=False, json_dumps_params={'indent': 4})
 
@@ -246,7 +256,6 @@ def fetch_missing_person(request, person_id=None):
     person['reporter_legal_name'] = person.get('reporter_legal_name')
     person['reporter_phone_number'] = person.get('reporter_phone_number')
     person['form_status'] = person.get('form_status')
-    person['rejection_reason'] = person.get('rejection_reason')
     person['last_updated_date'] = person.get('last_updated_date')
     person['submission_date'] = person.get('submission_date')
     person['updated_by'] = person.get('updated_by')
@@ -297,10 +306,12 @@ def delete_collection_data(request):
         missing_persons_deleted = missing_persons_collection.delete_many({})
         pending_list_deleted = pending_list_collection.delete_many({})
         rejected_list_deleted = rejected_list_collection.delete_many({})
+        found_submission_list_deleted = found_submission_collection.delete_many({})
 
         total_deleted = missing_persons_deleted.deleted_count + \
                         pending_list_deleted.deleted_count + \
-                        rejected_list_deleted.deleted_count
+                        rejected_list_deleted.deleted_count + \
+                        found_submission_list_deleted.deleted_count
         
         # Remove files
         for file in file_list:
@@ -338,6 +349,174 @@ def delete_collection_data(request):
                 {"message": "No records to delete."},
                 status=404
             )
+    except Exception as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
+       
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def person_found_submission(request):
+    try:
+        data = request.data
+        person = missing_persons_collection.find_one({ '_id': ObjectId(data.get('_parent_id')) })
+        
+        if person is None:
+            return JsonResponse({ 'error': 'This person does not exist in our records.' }, status=400)
+        
+        base64_image = data.get('image_url')
+
+        # Check if image_url is a list (array) and get the first item if so
+        if isinstance(base64_image, list):
+            base64_image = base64_image[0]  # Get the first image in the array
+        
+        location_found = data.get('location_found')
+        date_time_found = data.get('date_time_found')
+        provided_info = data.get('provided_info')
+        submission_date = datetime.datetime.now(datetime.timezone.utc)
+        last_updated_date = datetime.datetime.now(datetime.timezone.utc)
+        
+        print(submission_date)
+        print(last_updated_date)
+        
+        str_to_date = datetime.datetime.strptime(date_time_found, "%Y-%m-%dT%H:%M")
+        formatted_date = str_to_date.strftime("%d %b. %Y, %I:%M %p")
+        
+        if base64_image.startswith('data:image'):
+            base64_image = base64_image.split(',')[1]
+            
+        image_url = save_image(base64_image, 1)
+        
+        submission = {
+            '_parent_id': ObjectId(data.get('_parent_id')),
+            'image_url': image_url,
+            'location_found': location_found,
+            'date_time_found': formatted_date,
+            'provided_info': provided_info,
+            'submission_status': 'Pending',
+            'submission_date': submission_date,
+            'last_updated_date': last_updated_date,
+            'updated_by': None
+        }
+        
+        result = found_submission_collection.insert_one(submission)
+        
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "updates",
+            {
+                "type": "found_submission",
+                "message": f"New pending found submission ID: {id}",
+            }
+        )
+        
+        return JsonResponse({'message': 'Form submitted successfully', 'image_url': image_url}, status=200)
+    except Exception as e:
+        return JsonResponse({ 'message': 'Something went wrong.', 'error': str(e) }, status=500)
+
+@verify_auth
+@api_view(['GET'])
+def get_found_submission(request, _parent_id=None, staff_email=None):
+    try:
+        if _parent_id is None:
+            return JsonResponse({ 'error': 'Specified parent ID is null.' }, status=400)
+        
+        parent_object_id = ObjectId(_parent_id)
+        _data = list(found_submission_collection.find({ '_parent_id': parent_object_id }))
+        
+        for data in _data:
+            data['_id'] = str(data['_id'])
+            data['_parent_id'] = str(data['_parent_id'])
+            data['image_url'] = data.get('image_url')
+            data['location_found'] = data.get('location_found')
+            data['date_time_found'] = data.get('date_time_found')
+            data['provided_info'] = data.get('provided_info')
+            data['submission_status'] = data.get('submission_status')
+            data['submission_date'] = data.get('submission_date')
+            data['last_updated_date'] = data.get('last_updated_date')
+            data['updated_by'] = data.get('updated_by')
+            
+        return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
+            
+    except Exception as e:
+        return JsonResponse({ 'message': 'Something went wrong.', 'error': str(e) }, status=500)
+ 
+@verify_auth   
+@api_view(['GET'])
+def get_specific_found_submission(request, _parent_id=None, submission_id=None, staff_email=None):
+    try:
+        if submission_id is None:
+            return JsonResponse({ 'error': 'Specified parent ID is null.' }, status=400)
+        
+        try:
+            submission_object_id = ObjectId(submission_id)
+            parent_object_id = ObjectId(_parent_id)
+            
+            print(submission_object_id)
+            print(parent_object_id)
+        except Exception as e:
+            return JsonResponse({ 'error': f'Invalid ID format: {str(e)}' }, status=400)
+        
+        submission = found_submission_collection.find_one({ '_id': submission_object_id })
+        
+        if submission is None:
+            return JsonResponse({ 'error': 'This submission ID does not exist.' }, status=400)
+        
+        if parent_object_id != submission.get('_parent_id'):
+            return JsonResponse({ 'error': 'This submission ID is not linked to this parent ID.' }, status=400)
+        
+        
+        submission['_id'] = str(submission.get('_id'))
+        submission['_parent_id'] = str(submission.get('_parent_id'))
+        
+        return JsonResponse(submission, safe=False, json_dumps_params={'indent': 4})
+    except Exception as e:
+        return JsonResponse({ 'error': f'Something went wrong: {str(e)}' }, status=500)
+
+@verify_auth
+@api_view(['GET'])
+def get_rejected_found_submissions(request, _parent_id=None, staff_email=None):
+    try:
+        if _parent_id is None:
+            return JsonResponse({ 'error': 'Specified parent ID is null.' }, status=400)
+        
+        parent_object_id = ObjectId(_parent_id)
+        _data = list(rejected_found_submission_collection.find({ '_parent_id': parent_object_id }))
+        
+        for data in _data:
+            data['_id'] = str(data['_id'])
+            data['_parent_id'] = str(data['_parent_id'])
+            data['reported_location'] = data.get('reported_location')
+            data['reported_datetime'] = data.get('reported_datetime')
+            data['reported_information'] = data.get('reported_information')
+            data['submission_status'] = data.get('submission_status')
+            data['rejection_reason'] = data.get('rejection_reason')
+            data['submission_date'] = data.get('submission_date')
+            data['last_updated_date'] = data.get('last_updated_date')
+            data['updated_by'] = data.get('updated_by')
+            
+        return JsonResponse(_data, safe=False, json_dumps_params={'indent': 4})
+            
+    except Exception as e:
+        return JsonResponse({ 'message': 'Something went wrong.', 'error': str(e) }, status=500)
+    
+@api_view(['DELETE'])
+def delete_specific_rejected_found_submissions(request, _id=None):
+    try:
+        id = _id
+        rejected_found_submission_collection.delete_one({ '_id': ObjectId(id) })
+        
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "updates",
+            {
+                "type": "found_submission",
+                "message": f"Deleted rejected found submission ID: {id}",
+            }
+        )
+        
+        return JsonResponse({ 'message': 'Deleted rejected submission successfully.' }, status=200)
     except Exception as e:
         return JsonResponse(
             {"error": str(e)},

@@ -44,3 +44,11 @@ class NotificationConsumer(WebsocketConsumer):
             'type': 'transaction',
             'message': message
         }))
+        
+    def found_submission(self, event):
+        message = event['message']
+        
+        self.send(text_data=json.dumps({
+            'type': 'found_update',
+            'message': message
+        }))

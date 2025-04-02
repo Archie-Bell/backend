@@ -1,10 +1,10 @@
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from database.controllers.formController import fetch_pending_person, submit_form, fetch_pending_list, delete_collection_data, fetch_missing_person_list, fetch_missing_person, fetch_rejected_list, fetch_rejected_person
+from database.controllers.formController import fetch_pending_person, submit_form, fetch_pending_list, delete_collection_data, fetch_missing_person_list, fetch_missing_person, fetch_rejected_list, fetch_rejected_person, person_found_submission, get_found_submission, get_specific_found_submission, get_rejected_found_submissions, delete_specific_rejected_found_submissions
 from database.controllers.authController import staff_signup, staff_login, verify_panel_access
 from database.controllers.imageController import fetch_image_data
-from database.controllers.updateController import update_submission
+from database.controllers.updateController import update_submission, handle_found_submission
 
 
 urlpatterns = [
@@ -20,7 +20,13 @@ urlpatterns = [
     path('staff/verify/', verify_panel_access, name='verify_panel_access'),
     path("debug/purge-data", delete_collection_data, name='delete_collection_data'),
     path('uploads/<str:image_name>', fetch_image_data, name='fetch_image_data'),
-    path('staff/submission/update/', update_submission, name='update_submission')
+    path('staff/submission/update/', update_submission, name='update_submission'),
+    path('missing-person/submission', person_found_submission, name='person_found_submission'),
+    path('staff/missing-person/submissions/rejected/purge/<str:_id>', delete_specific_rejected_found_submissions, name='delete_specific_rejected_found_submissions'),
+    path('staff/missing-person/submissions/rejected/<str:_parent_id>', get_rejected_found_submissions, name='get_rejected_found_submissions'),
+    path('staff/missing-person/submissions/<str:_parent_id>', get_found_submission, name='get_found_submission'),
+    path('staff/missing-person/submissions/<str:_parent_id>/<str:submission_id>', get_specific_found_submission, name='get_specific_found_submission'),
+    path('staff/missing-person/update/', handle_found_submission, name='handle_found_submission')
 ]
 
 

@@ -9,6 +9,8 @@ from database.controllers.authController import verify_auth
 from datetime import datetime, timezone
 import jwt
 
+from rest_framework.decorators import api_view, parser_classes
+
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from database.controllers.notificationController import get_fcm_tokens, push_notifications  
@@ -56,6 +58,7 @@ def update_submission(request, **kwargs):
             if status == "Approved":
                 # Add the updated submission data to the MissingPersonsList
                 missing_person_data = {
+                    '_id': ObjectId(submission_id),
                     'name': name,
                     'age': age,
                     'last_location_seen': last_location_seen,
@@ -126,4 +129,63 @@ def update_submission(request, **kwargs):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return JsonResponse({"error": "Invalid request"}, status=405)
+
+@verify_auth
+@api_view(['POST'])
+def handle_found_submission(request, **kwargs):
+    try:
+        data = request.data
+        submission_id = data.get('submission_id')
+        parent_id = data.get('parent_id')
+        reported_location = data.get('reported_location')
+        reported_datetime = data.get('reported_datetime')
+        reported_information = data.get('reported_information')
+        submission_status = data.get('submission_status')
+        rejection_reason = data.get('rejection_reason')
+        submission_date = data.get('submission_date')
+        
+        if submission_status == 'approved':
+            print('Submission approved, proceeding with data deletion process.')
+            db['MissingPersonsList'].delete_many({ '_id': ObjectId(parent_id) })
+            db['FoundSubmissionList'].delete_many({ '_parent_id': ObjectId(parent_id) })
+            db['RejectedFoundSubmissionList'].delete_many({ '_parent_id': ObjectId(parent_id) })
+            
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "updates",
+                {
+                    "type": "found_submission",
+                    "message": f"Approved found submission for parent: {parent_id}",
+                }
+            )
+            
+        if submission_status == 'rejected':
+            print('Submission rejected, adding record for assessment.')
+            db['RejectedFoundSubmissionList'].insert_one({
+                '_id': ObjectId(submission_id),
+                '_parent_id': ObjectId(parent_id),
+                'reported_location': reported_location,
+                'reported_datetime': reported_datetime,
+                'reported_information': reported_information,
+                'submission_status': 'Rejected',
+                'rejection_reason': rejection_reason,
+                'submission_date': submission_date,
+                'last_updated_date': datetime.now(timezone.utc),
+                'updated_by': kwargs.get('staff_email')
+            })
+            
+            db['FoundSubmissionList'].find_one_and_delete({ '_id': ObjectId(submission_id) })
+            
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "updates",
+                {
+                    "type": "found_submission",
+                    "message": f"Declined found submission for parent: {parent_id}",
+                }
+            )
+
+        return JsonResponse({ 'message': 'Process finished' }, status=200)
+    except Exception as e:
+        return JsonResponse({ 'error': f'Something went wrong: {str(e)}' }, status=500)
