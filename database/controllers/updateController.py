@@ -133,7 +133,7 @@ def update_submission(request, **kwargs):
 
 @verify_auth
 @api_view(['POST'])
-def handle_found_submission(request, **kwargs):
+def handle_active_search_submission(request, **kwargs):
     try:
         data = request.data
         submission_id = data.get('submission_id')

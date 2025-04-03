@@ -4,7 +4,7 @@ from django.conf.urls.static import static
 from database.controllers.formController import fetch_pending_person, submit_form, fetch_pending_list, delete_collection_data, fetch_missing_person_list, fetch_missing_person, fetch_rejected_list, fetch_rejected_person, active_search_submission, get_active_search_submission, get_specific_active_search_submission, get_rejected_active_search_submissions, delete_specific_active_search_submission
 from database.controllers.authController import staff_signup, staff_login, verify_panel_access
 from database.controllers.imageController import fetch_image_data
-from database.controllers.updateController import update_submission, handle_found_submission
+from database.controllers.updateController import update_submission, handle_active_search_submission
 
 
 urlpatterns = [
@@ -26,7 +26,7 @@ urlpatterns = [
     path('staff/missing-person/submissions/rejected/<str:_parent_id>', get_rejected_active_search_submissions, name='get_rejected_found_submissions'),
     path('staff/missing-person/submissions/<str:_parent_id>', get_active_search_submission, name='get_found_submission'),
     path('staff/missing-person/submissions/<str:_parent_id>/<str:submission_id>', get_specific_active_search_submission, name='get_specific_found_submission'),
-    path('staff/missing-person/update/', handle_found_submission, name='handle_found_submission')
+    path('staff/missing-person/update/', handle_active_search_submission, name='handle_found_submission')
 ]
 
 # Serve uploaded images in development mode
