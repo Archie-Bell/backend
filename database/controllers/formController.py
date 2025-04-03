@@ -104,11 +104,9 @@ def submit_form(request):
         if not all([name, age, last_location_seen, last_date_time_seen, base64_image, reporter_legal_name, reporter_phone_number]):
             return JsonResponse({'error': 'All fields are required'}, status=400)
 
-        print("Checkpoint 1")
         # Process and save the image, return the image URL
         image_url = save_image(base64_image, 0)
                 
-        print("Checkpoint 2")
         # Format the last seen date
         str_to_date = datetime.datetime.strptime(last_date_time_seen, "%Y-%m-%dT%H:%M")
         formatted_date = str_to_date.strftime("%d %b. %Y, %I:%M %p")
@@ -300,7 +298,8 @@ def delete_collection_data(request):
         # Fix the file search pattern
         file_list = glob.glob(os.path.join('database', 'uploads', '*.png')) + \
                     glob.glob(os.path.join('database', 'uploads', '*.jpg')) + \
-                    glob.glob(os.path.join('database', 'uploads', '*.jpeg'))
+                    glob.glob(os.path.join('database', 'uploads', '*.jpeg')) + \
+                    glob.glob(os.path.join('database', 'uploads', 'submissions', '*.png'))
         
         # Delete data from collections and track deletion counts
         missing_persons_deleted = missing_persons_collection.delete_many({})

@@ -76,12 +76,7 @@ print(f"Loaded SECRET_KEY: {SECRET_KEY}")  # Debugging print
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    '10.0.2.2',
-    os.getenv('YOUR_LOCAL_IP_ADDRESS'),
-]
+ALLOWED_HOSTS = ['*']
 
 print(ALLOWED_HOSTS)
 

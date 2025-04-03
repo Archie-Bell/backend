@@ -1,4 +1,5 @@
 import json
+import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 class SubmissionConsumer(AsyncWebsocketConsumer):
@@ -20,6 +21,9 @@ class SubmissionConsumer(AsyncWebsocketConsumer):
             'message': 'WebSocket connected'
         }))
         
+        # Start a periodic ping to keep the connection alive
+        self.ping_task = asyncio.create_task(self.send_heartbeat())
+
     async def receive(self, text_data):
         # Parse the incoming message
         text_data_json = json.loads(text_data)
@@ -53,6 +57,27 @@ class SubmissionConsumer(AsyncWebsocketConsumer):
             'type': 'transaction',
             'message': message
         }))
+    
+    async def send_heartbeat(self):
+        while True:
+            await asyncio.sleep(30)  # Send a heartbeat every 30 seconds
+            try:
+                await self.send(text_data=json.dumps({
+                    'type': 'ping'
+                }))
+            except Exception:
+                break  # Break if the connection is closed
+
+    async def disconnect(self, close_code):
+        # Clean up the ping task when the WebSocket is closed
+        if hasattr(self, 'ping_task'):
+            self.ping_task.cancel()
+        # Remove the channel from the group
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
 
 class ActiveSearchConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -73,6 +98,9 @@ class ActiveSearchConsumer(AsyncWebsocketConsumer):
             'message': 'WebSocket connected'
         }))
         
+        # Start a periodic ping to keep the connection alive
+        self.ping_task = asyncio.create_task(self.send_heartbeat())
+
     async def receive(self, text_data):
         # Parse the incoming message
         text_data_json = json.loads(text_data)
@@ -96,3 +124,23 @@ class ActiveSearchConsumer(AsyncWebsocketConsumer):
             'type': 'active_search_update',
             'message': message
         }))
+    
+    async def send_heartbeat(self):
+        while True:
+            await asyncio.sleep(30)  # Send a heartbeat every 30 seconds
+            try:
+                await self.send(text_data=json.dumps({
+                    'type': 'ping'
+                }))
+            except Exception:
+                break  # Break if the connection is closed
+
+    async def disconnect(self, close_code):
+        # Clean up the ping task when the WebSocket is closed
+        if hasattr(self, 'ping_task'):
+            self.ping_task.cancel()
+        # Remove the channel from the group
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )

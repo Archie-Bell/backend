@@ -45,6 +45,9 @@ def update_submission(request, **kwargs):
             last_location_seen = submission.get('last_location_seen')
             last_date_time_seen = submission.get('last_date_time_seen')
             additional_info = submission.get('additional_info')
+            image_url = submission.get('image_url')
+            
+            image_url = image_url.split('/api/uploads/')[1]
             
             # Update status, last_updated_date, and updated_by
             update_data = {
@@ -113,6 +116,9 @@ def update_submission(request, **kwargs):
                 db["PendingSubmissionList"].delete_one({'_id': ObjectId(submission_id)})
                 print(f'Successfully deleted {submission_id} from pending list.')
                 
+                file = os.path.join('database', 'uploads', image_url)
+                os.remove(file)
+                
                 channel_layer = get_channel_layer()
                 async_to_sync(channel_layer.group_send)(
                     "updates",
@@ -144,6 +150,9 @@ def handle_active_search_submission(request, **kwargs):
         submission_status = data.get('submission_status')
         rejection_reason = data.get('rejection_reason')
         submission_date = data.get('submission_date')
+        image_url = data.get('image_url')
+        image_url = image_url.split('/api/uploads/submissions/')[1]
+        print(image_url)
         
         if submission_status == 'approved':
             print('Submission approved, proceeding with data deletion process.')
@@ -185,6 +194,10 @@ def handle_active_search_submission(request, **kwargs):
                     "message": f"Declined found submission for parent: {parent_id}",
                 }
             )
+        
+        file = os.path.join('database', 'uploads', 'submissions', image_url)
+        print(f'file {file}')
+        os.remove(file)
 
         return JsonResponse({ 'message': 'Process finished' }, status=200)
     except Exception as e:

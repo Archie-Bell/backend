@@ -76,7 +76,7 @@ def staff_login(request):
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-            print(" Login successful")  
+            print("Login successful")  
             return JsonResponse({"message": "Login successful", "token": token}, status=200)
 
         except Exception as e:
@@ -88,7 +88,6 @@ def verify_auth(func):
     def wrapper(request, *args, **kwargs):
         try:
             auth_header = request.headers.get("Authorization")
-            print(auth_header)
             if not auth_header:
                 return JsonResponse({"error": "Unauthorized - No Authorization header provided"}, status=401)
             # Ensure correct format
